@@ -1,6 +1,15 @@
-# Testing Checklist
+# Testing Checklist – OTT Content Aggregator API
 
 Mark each case `[x]` once a test is written and passing.
+
+**Note:** The checklist includes both currently testable cases and planned tests. Do not mark a case as passing until it has actually been implemented and verified.
+
+## Database & Core Configuration (M3)
+
+- [ ] Configuration reads `DATABASE_URL` and app settings correctly from `.env`
+- [ ] Database connection succeeds with valid credentials (`src.core.database.test_connection`)
+- [ ] FastAPI database dependency `get_db` yields active session and closes it cleanly after request
+- [ ] Alembic initializes and detects model metadata correctly for migrations
 
 ## Movie data
 
@@ -58,3 +67,20 @@ Mark each case `[x]` once a test is written and passing.
 - [ ] Redis cache hit/miss behaviour; app works if Redis is down
 - [ ] Background sync task runs and adds simulated titles
 - [ ] Tests cover at least 80% of endpoints
+
+## Current Implementation Status
+
+Currently implemented:
+- FastAPI application startup (`src/main.py`).
+- `GET /` – Welcome endpoint.
+- `GET /health` – Health-check endpoint.
+- PostgreSQL database connectivity, connection pooling, SessionLocal, declarative Base, and `get_db` dependency (`src/core/database.py`).
+- Application settings and environment configuration management with Pydantic v2 (`src/core/config.py`).
+- Alembic database migration scaffolding and environment (`alembic.ini`, `alembic/env.py`).
+
+Pending implementation and testing:
+- Movie and web-series CRUD operations.
+- Genre and platform management.
+- User registration and authentication.
+- Redis caching.
+- Background synchronization.
