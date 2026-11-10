@@ -14,6 +14,14 @@
 | created_at | DateTime | Creation date |
 
 ## Movie
+- content_type: movie
+- duration_minutes: Required
+- number_of_seasons: null
+
+## Web Series
+- content_type: web_series
+- duration_minutes: null
+- number_of_seasons: Required
 - duration_minutes: 148
 - number_of_seasons: null
 
