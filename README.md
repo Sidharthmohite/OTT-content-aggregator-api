@@ -164,3 +164,49 @@ See `tests/testing_checklist.md` for planned test cases.
 - Make small commits with clear messages; review via pull requests.
 - Pull the latest `main` before starting new work.
 - Never commit passwords, secret keys, database credentials or `.env` files.
+
+
+
+
+#m4
+Movie & Web Series Catalog
+
+Project Overview
+
+The Movie & Web Series Catalog is a Python-based project designed to manage information about movies and web series.
+
+Features
+
+- Store movie and web series details.
+- Manage title information.
+- Store release year and language.
+- Maintain movie duration and series seasons.
+- Support JSON sample data.
+
+Technologies Used
+
+- Python
+- FastAPI
+- SQLAlchemy
+- Pydantic
+- JSON
+
+Sample Data
+
+- Inception (Movie)
+- Stranger Things (Web Series)
+
+Project Structure
+
+- "src/models/" – Database models
+- "src/schemas/" – Data validation schemas
+- "sample_data/" – Sample JSON files
+- "docs/" – Project documentation
+
+Testing
+
+Python syntax and JSON formatting can be checked using Python commands.
+
+Status
+
+Movie and Web Series Catalog assignment module.
