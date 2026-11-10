@@ -56,3 +56,4 @@ if __name__ == "__main__":
         print(
             "✗ Database connection failed. Please verify PostgreSQL service and credentials in .env"
         )
+
