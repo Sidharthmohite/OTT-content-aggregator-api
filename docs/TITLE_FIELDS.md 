@@ -32,3 +32,17 @@
 ## Relationships
 Genre and OTT Platform relationships
 will be coordinated with M5.
+## Validation
+- Title must not be empty.
+- Content type must be movie or web_series.
+- Release year must be valid.
+- Duration and number of seasons must be positive when provided.
+
+## M4 Module Files
+- src/models/title.py
+- src/schemas/title.py
+- src/api/titles.py
+- src/services/catalog_service.py
+
+## Testing Status
+Testing and integration are pending verification. 
