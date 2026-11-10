@@ -1,5 +1,6 @@
 
 from fastapi import FastAPI
+from src.api.titles import router as titles_router 
 
 app = FastAPI(
     title="OTT Content Aggregator API",
