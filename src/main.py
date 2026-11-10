@@ -17,6 +17,4 @@ def home():
 def health_check():
     return {
         "status": "healthy"
-    }
-
-from src.api.titles import router as titles_router 
+   
