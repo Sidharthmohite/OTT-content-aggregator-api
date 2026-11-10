@@ -6,9 +6,10 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
 
-    # PostgreSQL Database URL
+    # PostgreSQL Database URL loaded from environment variable (.env)
+    # Generic placeholder used as default; no real credentials are hardcoded
     DATABASE_URL: str = (
-        "postgresql://postgres:your_password@localhost:5432/ott_aggregator"
+        "postgresql://username:password@localhost:5432/ott_aggregator"
     )
 
     # JWT Authentication settings (for M2)
@@ -27,4 +28,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-

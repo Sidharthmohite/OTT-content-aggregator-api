@@ -86,7 +86,8 @@ Requests arrive at a FastAPI application, are validated with Pydantic schemas, h
 │   └── testing_checklist.md
 ├── docs/
 │   ├── API_ENDPOINTS.md
-│   └── MODULES.md
+│   ├── MODULES.md
+│   └── TITLE_FIELDS.md
 ├── .env.example
 ├── .gitignore
 ├── requirements.txt
@@ -166,14 +167,24 @@ If connection is established, you will see:
 ```
 
 #### 4. Run Alembic Migrations
-Generate and apply migrations to keep the database schema in sync with SQLAlchemy models:
-```bash
-# Generate migration script (when models change)
-alembic revision --autogenerate -m "Initial schema migration"
+Alembic manages database schema versioning and keeps PostgreSQL in sync with SQLAlchemy models (`src/models/`).
 
-# Apply migrations
-alembic upgrade head
-```
+- **Generate a new migration script** (run whenever models are created or updated):
+  ```bash
+  alembic revision --autogenerate -m "Initial schema migration"
+  ```
+- **Apply migrations** to the database:
+  ```bash
+  alembic upgrade head
+  ```
+- **Check current migration version**:
+  ```bash
+  alembic current
+  ```
+- **Roll back the last migration** (if needed):
+  ```bash
+  alembic downgrade -1
+  ```
 
 ## Running the FastAPI Application
 
@@ -197,6 +208,7 @@ See `tests/testing_checklist.md` for planned and active test cases.
 
 - [API endpoint requirements](docs/API_ENDPOINTS.md)
 - [Module descriptions](docs/MODULES.md)
+- [Title Fields Specification](docs/TITLE_FIELDS.md)
 
 ## Four-Week Roadmap
 
