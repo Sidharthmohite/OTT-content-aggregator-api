@@ -50,6 +50,11 @@ Requests arrive at a FastAPI application, are validated with Pydantic schemas, h
 
 ```
 .
+├── alembic/                 # Database migrations (Alembic)
+│   ├── env.py
+│   ├── script.py.mako
+│   └── versions/
+├── alembic.ini              # Alembic configuration
 ├── src/
 │   ├── __init__.py
 │   ├── main.py              # FastAPI app entry point
@@ -81,21 +86,22 @@ Requests arrive at a FastAPI application, are validated with Pydantic schemas, h
 │   └── testing_checklist.md
 ├── docs/
 │   ├── API_ENDPOINTS.md
-│   └── MODULES.md
+│   ├── MODULES.md
+│   └── TITLE_FIELDS.md
 ├── .env.example
 ├── .gitignore
 ├── requirements.txt
 └── README.md
 ```
 
-**Planned, not yet in the repo** (from the project guide): `src/core/security.py` (password hashing and JWT), `src/services/auth_service.py`, an auth route file (`/auth/register`, `/auth/login`) and the `alembic/` migrations folder. This section will be updated as they are added.
+**Planned, not yet in the repo** (from the project guide): `src/core/security.py` (password hashing and JWT), `src/services/auth_service.py`, and an auth route file (`/auth/register`, `/auth/login`). This section will be updated as they are added by their respective owners.
 
 ## Installation
 
 ```bash
 # 1. Clone the repository
-git clone <repository-url>
-cd <repository-folder>
+git clone https://github.com/Sidharthmohite/OTT-content-aggregator-api.git
+cd OTT-content-aggregator-api
 
 # 2. Create and activate a virtual environment
 python -m venv venv
@@ -107,10 +113,16 @@ pip install -r requirements.txt
 
 ### Environment variables
 
-Create a `.env` file in the project root (**never commit it to GitHub**):
+Create a `.env` file in the project root by copying the template (**never commit it to GitHub**):
 
+```bash
+cp .env.example .env
 ```
-DATABASE_URL=postgresql://<user>:<password>@localhost:5432/<db_name>
+
+Configure your local database credentials and application settings in `.env`:
+
+```env
+DATABASE_URL=postgresql://<user>:<password>@localhost:5432/ott_aggregator
 SECRET_KEY=<your-secret-key>
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
@@ -119,12 +131,60 @@ REDIS_URL=redis://localhost:6379/0
 
 ### Database setup
 
-1. Install PostgreSQL and create a database for the project.
-2. Run migrations (once the Alembic setup is added by the team):
+#### 1. Install and Start PostgreSQL
+- **macOS (Homebrew):**
+  ```bash
+  brew install postgresql@14
+  brew services start postgresql@14
+  ```
+- **Ubuntu/Debian:**
+  ```bash
+  sudo apt update && sudo apt install postgresql postgresql-contrib
+  sudo systemctl start postgresql
+  ```
+- **Windows:**
+  Download and install the interactive installer from [postgresql.org](https://www.postgresql.org/download/windows/).
 
+#### 2. Create the Database
+Log into PostgreSQL CLI and create the project database:
 ```bash
-alembic upgrade head
+psql -U postgres
 ```
+```sql
+CREATE DATABASE ott_aggregator;
+GRANT ALL PRIVILEGES ON DATABASE ott_aggregator TO postgres;
+\q
+```
+
+#### 3. Verify Database Connection
+Test connectivity to PostgreSQL using the database verification utility:
+```bash
+python -m src.core.database
+```
+If connection is established, you will see:
+```
+✓ Database connection successful!
+```
+
+#### 4. Run Alembic Migrations
+Alembic manages database schema versioning and keeps PostgreSQL in sync with SQLAlchemy models (`src/models/`).
+
+- **Generate a new migration script** (run whenever models are created or updated):
+  ```bash
+  alembic revision --autogenerate -m "Initial schema migration"
+  ```
+- **Apply migrations** to the database:
+  ```bash
+  alembic upgrade head
+  ```
+- **Check current migration version**:
+  ```bash
+  alembic current
+  ```
+- **Roll back the last migration** (if needed):
+  ```bash
+  alembic downgrade -1
+  ```
 
 ## Running the FastAPI Application
 
@@ -142,12 +202,13 @@ uvicorn src.main:app --reload
 pytest
 ```
 
-See `tests/testing_checklist.md` for planned test cases.
+See `tests/testing_checklist.md` for planned and active test cases.
 
 ## Documentation
 
 - [API endpoint requirements](docs/API_ENDPOINTS.md)
 - [Module descriptions](docs/MODULES.md)
+- [Title Fields Specification](docs/TITLE_FIELDS.md)
 
 ## Four-Week Roadmap
 
