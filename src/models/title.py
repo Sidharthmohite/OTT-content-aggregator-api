@@ -36,3 +36,4 @@ class Title(Base):
             name="check_content_type"
         ),
     )
+
