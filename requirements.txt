@@ -5,3 +5,8 @@ psycopg2-binary
 pydantic-settings
 alembic
 python-dotenv
+pydantic>=2.0
+pydantic-settings>=2.0
+httpx
+pytest
+psycopg2-binary 
