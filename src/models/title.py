@@ -1,8 +1,9 @@
-
 from sqlalchemy import Column, Integer, String, Text, DateTime, CheckConstraint
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 
 from src.core.database import Base
+from src.models.associations import title_genres, title_platforms
 
 
 class Title(Base):
@@ -35,4 +36,16 @@ class Title(Base):
             "content_type IN ('movie', 'web_series')",
             name="check_content_type"
         ),
+    )
+
+    genres = relationship(
+        "Genre",
+        secondary=title_genres,
+        back_populates="titles"
+    )
+
+    platforms = relationship(
+        "Platform",
+        secondary=title_platforms,
+        back_populates="titles"
     )
