@@ -1,273 +1,77 @@
 # OTT Content Aggregator API
 
-A backend REST API that brings movie and web-series information into **one searchable catalog**. Instead of checking several streaming services, a user can search a single catalog to see a title's type, release year, genre and the OTT platform(s) it is listed on.
+A FastAPI backend for managing a catalog of movies and web series. A title stores its name, content type, release year, language, and optional description, runtime, and season count. The main app uses Pydantic for validation and SQLAlchemy for persistence.
 
-> **Scope note:** Background synchronization only *simulates* fetching data from external OTT platforms. No real OTT integrations or live availability data are used.
+## API endpoints
 
-## Overview
+| Method | Path | Behavior |
+| --- | --- | --- |
+| GET | `/` | Returns the welcome message |
+| GET | `/health` | Reports that the application is responding |
+| GET | `/titles/` | Lists all titles |
+| POST | `/titles/` | Creates a title and returns HTTP 201 |
+| GET | `/titles/{title_id}` | Retrieves one title |
+| PATCH | `/titles/{title_id}` | Updates the supplied fields |
+| DELETE | `/titles/{title_id}` | Deletes a title and returns a confirmation |
 
-Requests arrive at a FastAPI application, are validated with Pydantic schemas, handled by service (business-logic) functions, and stored/read through SQLAlchemy and PostgreSQL. Redis can cache selected read requests, and a background task simulates catalog syncing.
+Requests for a missing title ID return HTTP 404. The title API accepts `movie` and `web_series` as content types. Invalid request fields such as an out-of-range release year or a zero runtime return HTTP 422. The health endpoint checks application liveness only.
 
-## Objectives
+The root app currently exposes title CRUD. Genre and platform modules are placeholders. JWT authentication code is in the separate [M2 milestone folder](M2_extracted_files/python%20project%20work%20M2/README.md). Search and filtering, Redis caching, and simulated background synchronization are planned.
 
-- Build a structured, maintainable REST API for titles, genres, platforms and users.
-- Support search and filtering (name, genre, release year, platform).
-- Protect user accounts with hashed passwords and JWT authentication.
-- Demonstrate caching (Redis) and background data synchronization.
-- Cover the API with automated tests (Pytest + HTTPX), targeting at least 80% of endpoints.
+## Local setup
 
-## Features
+Run the commands below from the repository root with Python 3.10 or newer. On Windows PowerShell:
 
-- Movie and web-series catalog (type distinguishes Movie / Web Series)
-- Search by title name
-- Genre filtering (Action, Comedy, Drama, Thriller, ...)
-- Release-year filtering (single year or range)
-- OTT platform information per title
-- User registration and login
-- Protected routes (JWT)
-- Redis caching of frequently requested data
-- Background synchronization (simulated)
-- Automated tests with Pytest and HTTPX
-- Interactive Swagger UI at `/docs`
-
-## Technology Stack
-
-| Technology | Purpose |
-|---|---|
-| Python 3.10+ | Main language |
-| FastAPI | REST endpoints and interactive docs |
-| PostgreSQL | Data storage |
-| SQLAlchemy 2.0 | ORM / database models |
-| Pydantic v2 | Request and response validation |
-| Alembic | Database migrations |
-| JWT / python-jose | Token creation and verification |
-| passlib | Password hashing |
-| Redis | Caching (Week 3) |
-| Pytest + HTTPX | Automated API tests |
-| Git + GitHub | Version control and collaboration |
-
-## Folder Structure
-
-```
-.
-├── alembic/                 # Database migrations (Alembic)
-│   ├── env.py
-│   ├── script.py.mako
-│   └── versions/
-├── alembic.ini              # Alembic configuration
-├── src/
-│   ├── __init__.py
-│   ├── main.py              # FastAPI app entry point
-│   ├── api/                 # API route files
-│   │   ├── __init__.py
-│   │   ├── genres.py
-│   │   ├── platforms.py
-│   │   └── titles.py
-│   ├── core/                # configuration and database setup
-│   │   ├── __init__.py
-│   │   ├── config.py
-│   │   └── database.py
-│   ├── models/              # SQLAlchemy models
-│   │   ├── __init__.py
-│   │   ├── genre.py
-│   │   ├── platform.py
-│   │   ├── title.py
-│   │   └── user.py
-│   ├── schemas/             # Pydantic schemas
-│   │   ├── __init__.py
-│   │   ├── genre.py
-│   │   ├── platform.py
-│   │   ├── title.py
-│   │   └── user.py
-│   └── services/            # business logic
-│       ├── __init__.py
-│       └── catalog_service.py
-├── tests/
-│   └── testing_checklist.md
-├── docs/
-│   ├── API_ENDPOINTS.md
-│   ├── MODULES.md
-│   └── TITLE_FIELDS.md
-├── .env.example
-├── .gitignore
-├── requirements.txt
-└── README.md
-```
-
-**Planned, not yet in the repo** (from the project guide): `src/core/security.py` (password hashing and JWT), `src/services/auth_service.py`, and an auth route file (`/auth/register`, `/auth/login`). This section will be updated as they are added by their respective owners.
-
-## Installation
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/Sidharthmohite/OTT-content-aggregator-api.git
-cd OTT-content-aggregator-api
-
-# 2. Create and activate a virtual environment
+```powershell
 python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
+.\venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
 ```
 
-### Environment variables
+On macOS or Linux, activate with `source venv/bin/activate` and copy the template with `cp .env.example .env`. If a local `.env` already exists, edit it directly. Keep it out of Git.
 
-Create a `.env` file in the project root by copying the template (**never commit it to GitHub**):
+Start PostgreSQL, create a local development database named `ott_aggregator`, and set `DATABASE_URL` in `.env` to match your local credentials. The explicit driver name selects Psycopg 3.
 
-```bash
-cp .env.example .env
+```dotenv
+DATABASE_URL=postgresql+psycopg://username:password@localhost:5432/ott_aggregator
 ```
 
-Configure your local database credentials and application settings in `.env`:
+The root Alembic directory has no committed migration revisions. To create the catalog table in a fresh local development database, run:
 
-```env
-DATABASE_URL=postgresql://<user>:<password>@localhost:5432/ott_aggregator
-SECRET_KEY=<your-secret-key>
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-REDIS_URL=redis://localhost:6379/0
+```text
+python -c "from src.main import app; from src.core.database import Base, engine; Base.metadata.create_all(engine)"
+python -m uvicorn src.main:app --reload
 ```
 
-### Database setup
+This initializes missing tables from the current models. Schema upgrades for an existing database need an Alembic revision.
 
-#### 1. Install and Start PostgreSQL
-- **macOS (Homebrew):**
-  ```bash
-  brew install postgresql@14
-  brew services start postgresql@14
-  ```
-- **Ubuntu/Debian:**
-  ```bash
-  sudo apt update && sudo apt install postgresql postgresql-contrib
-  sudo systemctl start postgresql
-  ```
-- **Windows:**
-  Download and install the interactive installer from [postgresql.org](https://www.postgresql.org/download/windows/).
+Open [Swagger UI](http://127.0.0.1:8000/docs) or view the [OpenAPI schema](http://127.0.0.1:8000/openapi.json).
 
-#### 2. Create the Database
-Log into PostgreSQL CLI and create the project database:
-```bash
-psql -U postgres
-```
-```sql
-CREATE DATABASE ott_aggregator;
-GRANT ALL PRIVILEGES ON DATABASE ott_aggregator TO postgres;
-\q
-```
+## Smoke test
 
-#### 3. Verify Database Connection
-Test connectivity to PostgreSQL using the database verification utility:
-```bash
-python -m src.core.database
-```
-If connection is established, you will see:
-```
-✓ Database connection successful!
-```
+With the server running, use Swagger UI to check the API against a local development database.
 
-#### 4. Run Alembic Migrations
-Alembic manages database schema versioning and keeps PostgreSQL in sync with SQLAlchemy models (`src/models/`).
+1. Send `GET /health` and expect HTTP 200 with `{"status":"healthy"}`.
+2. Send `POST /titles/` with the contents of [inception.json](sample_data/inception.json) or [stranger_things.json](sample_data/stranger_things.json). Expect HTTP 201 and save the returned ID.
+3. Send `GET /titles/` and `GET /titles/{title_id}` to confirm the record is present.
+4. Send `PATCH /titles/{title_id}` with `{"description":"Updated description"}` and expect HTTP 200 with the new description. Try `{"duration_minutes":0}` and expect HTTP 422.
+5. Send `DELETE /titles/{title_id}` and expect HTTP 200. Fetch the deleted ID again and expect HTTP 404.
 
-- **Generate a new migration script** (run whenever models are created or updated):
-  ```bash
-  alembic revision --autogenerate -m "Initial schema migration"
-  ```
-- **Apply migrations** to the database:
-  ```bash
-  alembic upgrade head
-  ```
-- **Check current migration version**:
-  ```bash
-  alembic current
-  ```
-- **Roll back the last migration** (if needed):
-  ```bash
-  alembic downgrade -1
-  ```
+The root `tests/` folder contains a [test checklist](tests/testing_checklist.md). The separate M2 milestone includes its own authentication tests.
 
-## Running the FastAPI Application
+## Repository guide
 
-```bash
-uvicorn src.main:app --reload
-```
+| Path | Contents |
+| --- | --- |
+| `src/main.py` | FastAPI entry point and router registration |
+| `src/api/` | Route definitions |
+| `src/core/` | Settings and database session setup |
+| `src/models/`, `src/schemas/` | SQLAlchemy models and Pydantic schemas |
+| `src/services/` | Catalog persistence logic |
+| `sample_data/` | Example title request bodies |
+| `alembic/` | Migration scaffolding |
 
-- API base URL: http://127.0.0.1:8000
-- Swagger UI: http://127.0.0.1:8000/docs
-- OpenAPI JSON: http://127.0.0.1:8000/openapi.json
-
-## Running Tests
-
-```bash
-pytest
-```
-
-See `tests/testing_checklist.md` for planned and active test cases.
-
-## Documentation
-
-- [API endpoint requirements](docs/API_ENDPOINTS.md)
+- [Title field specification](TITLE_FIELDS.md)
+- [API requirements](docs/API_ENDPOINTS.md)
 - [Module descriptions](docs/MODULES.md)
-- [Title Fields Specification](docs/TITLE_FIELDS.md)
-
-## Four-Week Roadmap
-
-| Week | Work |
-|---|---|
-| 1 | Project scaffolding, models, schemas, database setup, Alembic |
-| 2 | JWT authentication, registration/login, catalog CRUD, protected routes |
-| 3 | Filtering by genre/year/platform, Redis caching |
-| 4 | Background sync (BackgroundTasks or Celery), Pytest/HTTPX tests |
-
-## Team Workflow
-
-- Work on feature branches, not directly on `main`.
-- Make small commits with clear messages; review via pull requests.
-- Pull the latest `main` before starting new work.
-- Never commit passwords, secret keys, database credentials or `.env` files.
-
-
-
-
-#m4
-Movie & Web Series Catalog
-
-Project Overview
-
-The Movie & Web Series Catalog is a Python-based project designed to manage information about movies and web series.
-
-Features
-
-- Store movie and web series details.
-- Manage title information.
-- Store release year and language.
-- Maintain movie duration and series seasons.
-- Support JSON sample data.
-
-Technologies Used
-
-- Python
-- FastAPI
-- SQLAlchemy
-- Pydantic
-- JSON
-
-Sample Data
-
-- Inception (Movie)
-- Stranger Things (Web Series)
-
-Project Structure
-
-- "src/models/" – Database models
-- "src/schemas/" – Data validation schemas
-- "sample_data/" – Sample JSON files
-- "docs/" – Project documentation
-
-Testing
-
-Python syntax and JSON formatting can be checked using Python commands.
-
-Status
-
-Movie and Web Series Catalog assignment module.
