@@ -1,4 +1,5 @@
 
+
 from sqlalchemy import Column, Integer, String, Text, DateTime, CheckConstraint
 from sqlalchemy.sql import func
 
@@ -36,4 +37,3 @@ class Title(Base):
             name="check_content_type"
         ),
     )
-
