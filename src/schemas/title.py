@@ -37,3 +37,4 @@ class TitleUpdate(BaseModel):
     language: Optional[str] = None
     duration_minutes: Optional[int] = Field(default=None, gt=0)
     number_of_seasons: Optional[int] = Field(default=None, gt=0)
+
