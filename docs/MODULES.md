@@ -92,3 +92,4 @@ Intended to contain business logic.
 - **Core Database & Configuration (M3):** Database engine, connection pooling, SessionLocal, declarative Base, FastAPI session dependency (`get_db`), environment configuration via Pydantic Settings, and Alembic migration infrastructure are fully implemented.
 - **Catalog Service & Title Models (M4):** Title model, schema validation, and catalog CRUD service added.
 - **Remaining Modules:** User models & authentication (M2) and Genre/Platform models & endpoints (M5) will be implemented by their respective team members according to the 4-week roadmap.
+
