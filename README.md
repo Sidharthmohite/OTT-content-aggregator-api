@@ -1,155 +1,66 @@
 # OTT Content Aggregator API
 
-A backend REST API that brings movie and web-series information into **one searchable catalog**. Instead of checking several streaming services, a user can search a single catalog to see a title's type, release year, genre and the OTT platform(s) it is listed on.
+A FastAPI backend for managing a catalog of movies and web series. A title stores its name, content type, release year, language, and optional description, runtime, and season count. The main app uses Pydantic for validation and SQLAlchemy for persistence.
 
-> **Scope note:** Background synchronization only *simulates* fetching data from external OTT platforms. No real OTT integrations or live availability data are used.
+Background synchronization is planned as a simulation using sample data.
 
-## Overview
+## API endpoints
 
-Requests arrive at a FastAPI application, are validated with Pydantic schemas, handled by service (business-logic) functions, and stored/read through SQLAlchemy and PostgreSQL. Redis can cache selected read requests, and a background task simulates catalog syncing.
+| Method | Path | Behavior |
+| --- | --- | --- |
+| GET | `/` | Returns the welcome message |
+| GET | `/health` | Reports that the application is responding |
+| GET | `/titles/` | Lists all titles |
+| POST | `/titles/` | Creates a title and returns HTTP 201 |
+| GET | `/titles/{title_id}` | Retrieves one title |
+| PATCH | `/titles/{title_id}` | Updates the supplied fields |
+| DELETE | `/titles/{title_id}` | Deletes a title and returns a confirmation |
 
-## Objectives
+Requests for a missing title ID return HTTP 404. The title API accepts `movie` and `web_series` as content types. Invalid request fields such as an out-of-range release year or a zero runtime return HTTP 422. The health endpoint checks application liveness only.
 
-- Build a structured, maintainable REST API for titles, genres, platforms and users.
-- Support search and filtering (name, genre, release year, platform).
-- Protect user accounts with hashed passwords and JWT authentication.
-- Demonstrate caching (Redis) and background data synchronization.
-- Cover the API with automated tests (Pytest + HTTPX), targeting at least 80% of endpoints.
+The root app currently exposes title CRUD. Genre and platform modules are placeholders. JWT authentication code is in the separate [M2 milestone folder](M2_extracted_files/python%20project%20work%20M2/README.md). Search and filtering, Redis caching, and simulated background synchronization are planned.
 
-## Features
+## Local setup
 
-- Movie and web-series catalog (`content_type` is `movie` or `web_series`)
-- Search by title name
-- Genre filtering (Action, Comedy, Drama, Thriller, ...)
-- Release-year filtering (single year or range)
-- OTT platform information per title
-- User registration and login
-- Protected routes (JWT)
-- Redis caching of frequently requested data
-- Background synchronization (simulated)
-- Automated tests with Pytest and HTTPX
-- Interactive Swagger UI at `/docs`
+Run the commands below from the repository root with Python 3.10 or newer. On Windows PowerShell:
 
-## Technology Stack
-
-| Technology | Purpose |
-|---|---|
-| Python 3.10+ | Main language |
-| FastAPI | REST endpoints and interactive docs |
-| PostgreSQL | Data storage |
-| SQLAlchemy 2.0 | ORM / database models |
-| Pydantic v2 | Request and response validation |
-| Alembic | Database migrations |
-| JWT | Token creation and verification (the guide names python-jose; M2's code uses PyJWT) |
-| passlib (bcrypt) | Password hashing |
-| Redis | Caching (Week 3) |
-| Pytest + HTTPX | Automated API tests |
-| Git + GitHub | Version control and collaboration |
-
-## Folder Structure
-
-```
-.
-├── alembic/                 # Database migrations (Alembic)
-│   ├── env.py
-│   ├── script.py.mako
-│   └── versions/
-├── alembic.ini              # Alembic configuration
-├── src/
-│   ├── __init__.py
-│   ├── main.py              # FastAPI app entry point
-│   ├── api/                 # API route files (genres.py, platforms.py, titles.py)
-│   ├── core/                # config.py, database.py
-│   ├── models/              # SQLAlchemy models (genre, platform, title, user)
-│   ├── schemas/             # Pydantic schemas (genre, platform, title, user)
-│   └── services/            # business logic (catalog_service.py)
-├── tests/
-│   ├── test_health.py
-│   ├── test_titles_api.py
-│   ├── test_auth_validation.py
-│   ├── test_auth_api.py
-│   └── testing_checklist.md
-├── docs/
-│   ├── API_ENDPOINTS.md
-│   ├── MODULES.md
-│   └── PROJECT_STATUS.md
-├── .env.example
-├── .gitignore
-├── requirements.txt
-└── README.md
-```
-
-Not yet in `src/`: M2's authentication code (user model, schemas, service, `security.py` and the `/auth` routes) is currently in `M2_extracted_files/` and still has to be moved into `src/` and connected to `src/main.py`. The genre and platform files are empty placeholders, and `TITLE_FIELDS.md` is at the repo root. See [docs/MODULES.md](docs/MODULES.md) for the status of each module.
-
-## Installation
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/Sidharthmohite/OTT-content-aggregator-api.git
-cd OTT-content-aggregator-api
-
-# 2. Create and activate a virtual environment
+```powershell
 python -m venv venv
-source venv/bin/activate        # Windows PowerShell: venv\Scripts\Activate.ps1
-                                # Windows Command Prompt: venv\Scripts\activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
+.\venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
 ```
 
-### Environment variables
+On macOS or Linux, activate with `source venv/bin/activate` and copy the template with `cp .env.example .env`. If a local `.env` already exists, edit it directly. Keep it out of Git.
 
-Create a `.env` file in the project root by copying the template (**never commit it to GitHub**):
+Start PostgreSQL, create a local development database named `ott_aggregator`, and set `DATABASE_URL` in `.env` to match your local credentials. The explicit driver name selects Psycopg 3.
 
-```bash
-cp .env.example .env            # Windows: copy .env.example .env
+```dotenv
+DATABASE_URL=postgresql+psycopg://username:password@localhost:5432/ott_aggregator
 ```
 
-Set your local database credentials in `.env`:
+The root Alembic directory has no committed migration revisions. To create the catalog table in a fresh local development database, run:
 
-```env
-DATABASE_URL=postgresql://<user>:<password>@localhost:5432/ott_aggregator
-SECRET_KEY=<your-secret-key>
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-REDIS_URL=redis://localhost:6379/0
+```text
+python -c "from src.main import app; from src.core.database import Base, engine; Base.metadata.create_all(engine)"
+python -m uvicorn src.main:app --reload
 ```
 
-### Database setup
+This initializes missing tables from the current models. Schema upgrades for an existing database need an Alembic revision.
 
-1. **Install and start PostgreSQL** (download from [postgresql.org](https://www.postgresql.org/download/); on macOS `brew install postgresql@14`; on Ubuntu `sudo apt install postgresql`).
-2. **Create the database:**
-   ```bash
-   psql -U postgres
-   ```
-   ```sql
-   CREATE DATABASE ott_aggregator;
-   \q
-   ```
-3. **Verify the connection:**
-   ```bash
-   python -m src.core.database
-   ```
-   A success message means the app can reach PostgreSQL.
-4. **Alembic migrations** keep the database in sync with the models in `src/models/`:
-   ```bash
-   alembic revision --autogenerate -m "Initial schema migration"   # create a migration
-   alembic upgrade head                                            # apply migrations
-   alembic current                                                 # show current version
-   alembic downgrade -1                                            # roll back one step
-   ```
-   No migration file exists yet, so the tables are not created until one is generated and the models are imported in `alembic/env.py`.
+Open [Swagger UI](http://127.0.0.1:8000/docs) or view the [OpenAPI schema](http://127.0.0.1:8000/openapi.json).
 
-## Running the FastAPI Application
+## Smoke test
 
-```bash
-uvicorn src.main:app --reload
-```
+With the server running, use Swagger UI to check the API against a local development database.
 
-- API base URL: http://127.0.0.1:8000
-- Health check: http://127.0.0.1:8000/health
-- Swagger UI: http://127.0.0.1:8000/docs
-- OpenAPI JSON: http://127.0.0.1:8000/openapi.json
+1. Send `GET /health` and expect HTTP 200 with `{"status":"healthy"}`.
+2. Send `POST /titles/` with the contents of [inception.json](sample_data/inception.json) or [stranger_things.json](sample_data/stranger_things.json). Expect HTTP 201 and save the returned ID.
+3. Send `GET /titles/` and `GET /titles/{title_id}` to confirm the record is present.
+4. Send `PATCH /titles/{title_id}` with `{"description":"Updated description"}` and expect HTTP 200 with the new description. Try `{"duration_minutes":0}` and expect HTTP 422.
+5. Send `DELETE /titles/{title_id}` and expect HTTP 200. Fetch the deleted ID again and expect HTTP 404.
+
+The root `tests/` folder contains a [test checklist](tests/testing_checklist.md). The separate M2 milestone includes its own authentication tests.
 
 ## Running Tests
 
@@ -186,12 +97,22 @@ Verified on Windows with Python 3.14: **31 passed**.
 
 See the [testing checklist](tests/testing_checklist.md) for planned test cases.
 
-## Documentation
+## Repository guide
 
-- [API endpoint documentation](docs/API_ENDPOINTS.md)
+| Path | Contents |
+| --- | --- |
+| `src/main.py` | FastAPI entry point and router registration |
+| `src/api/` | Route definitions |
+| `src/core/` | Settings and database session setup |
+| `src/models/`, `src/schemas/` | SQLAlchemy models and Pydantic schemas |
+| `src/services/` | Catalog persistence logic |
+| `sample_data/` | Example title request bodies |
+| `alembic/` | Migration scaffolding |
+
+- [Title field specification](TITLE_FIELDS.md)
+- [API requirements](docs/API_ENDPOINTS.md)
 - [Module descriptions](docs/MODULES.md)
 - [Project status and to-do list](docs/PROJECT_STATUS.md)
-- [Testing checklist](tests/testing_checklist.md)
 
 ## Project Status
 
