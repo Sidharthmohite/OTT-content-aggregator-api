@@ -65,10 +65,14 @@ Requests arrive at a FastAPI application, are validated with Pydantic schemas, h
 │   └── services/            # business logic (catalog_service.py)
 ├── tests/
 │   ├── test_health.py
+│   ├── test_titles_api.py
+│   ├── test_auth_validation.py
+│   ├── test_auth_api.py
 │   └── testing_checklist.md
 ├── docs/
 │   ├── API_ENDPOINTS.md
-│   └── MODULES.md
+│   ├── MODULES.md
+│   └── PROJECT_STATUS.md
 ├── .env.example
 ├── .gitignore
 ├── requirements.txt
@@ -156,22 +160,39 @@ pip install pytest httpx
 python -m pytest tests
 ```
 
-Use `tests` at the end so pytest only looks in this project. See `tests/testing_checklist.md` for the full list of planned test cases.
+Use `tests` at the end so pytest only looks in this project. The title and auth tests use an in-memory SQLite database, so PostgreSQL is not needed. `test_auth_validation.py` and `test_auth_api.py` need M2's code inside `src/`. Tests marked `xfail` describe known gaps and will show as `XPASS` once fixed. See `tests/testing_checklist.md` for the full list of planned test cases.
 
 ## Documentation
 
 - [API endpoint documentation](docs/API_ENDPOINTS.md)
 - [Module descriptions](docs/MODULES.md)
+- [Project status and to-do list](docs/PROJECT_STATUS.md)
 - [Testing checklist](tests/testing_checklist.md)
+
+## Project Status
+
+| Area | Status |
+|---|---|
+| FastAPI app, `/` and `/health` | Done |
+| Database config, session, Alembic setup (M3) | Done |
+| Titles: model, schemas, CRUD endpoints, service (M4) | Done, no login required yet |
+| User authentication: model, schemas, register and login (M2) | Written, not yet moved into `src/` or connected |
+| Migrations | Users migration exists in M2's folder; no titles migration yet |
+| Genres and platforms (M5) | Not started (empty files) |
+| Protected routes | Not started |
+| Search and filters, Redis caching, background sync | Not started |
+| Tests | Health tests done; title and auth tests prepared |
+
+Full details, review findings and the to-do list per member are in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 
 ## Four-Week Roadmap
 
-| Week | Work |
-|---|---|
-| 1 | Project scaffolding, models, schemas, database setup, Alembic |
-| 2 | JWT authentication, registration/login, catalog CRUD, protected routes |
-| 3 | Filtering by genre/year/platform, Redis caching |
-| 4 | Background sync (BackgroundTasks or Celery), Pytest/HTTPX tests |
+| Week | Work | Progress |
+|---|---|---|
+| 1 | Project scaffolding, models, schemas, database setup, Alembic | Mostly done; genres and platforms missing |
+| 2 | JWT authentication, registration/login, catalog CRUD, protected routes | Catalog CRUD done; auth written but not connected; no protected routes |
+| 3 | Filtering by genre/year/platform, Redis caching | Not started |
+| 4 | Background sync (BackgroundTasks or Celery), Pytest/HTTPX tests | Not started; health tests done |
 
 ## Team Workflow
 
