@@ -153,14 +153,38 @@ uvicorn src.main:app --reload
 
 ## Running Tests
 
-From the project folder, with the virtual environment active:
+Run these commands from the repository root with your virtual environment active. Run the extracted M2 suite separately because it has its own `src` and `tests` packages.
 
-```bash
-pip install pytest httpx
-python -m pytest tests
+### Root app health and title API
+
+```powershell
+python -m pip install -r requirements.txt pytest httpx
+python -m pytest -q tests/test_health.py tests/test_titles_api.py
 ```
 
-Use `tests` at the end so pytest only looks in this project. The title and auth tests use an in-memory SQLite database, so PostgreSQL is not needed. `test_auth_validation.py` and `test_auth_api.py` need M2's code inside `src/`. Tests marked `xfail` describe known gaps and will show as `XPASS` once fixed. See `tests/testing_checklist.md` for the full list of planned test cases.
+Verified on Windows with Python 3.14: **25 passed, 5 expected failures (`xfail`), and 1 Starlette deprecation warning**. The title tests use an in-memory SQLite database.
+
+### Standalone M2 authentication
+
+```powershell
+Push-Location -LiteralPath '.\M2_extracted_files\python project work M2'
+try {
+    python -m pip install -r requirements.txt
+    if ($LASTEXITCODE -eq 0) {
+        python -m pytest -q tests
+    }
+} finally {
+    Pop-Location
+}
+```
+
+Verified on Windows with Python 3.14: **31 passed**.
+
+### Root app authentication integration
+
+`tests/test_auth_api.py` and `tests/test_auth_validation.py` are blocked during collection because the root app does not have `src.core.security`. After integrating M2's auth code into the root app, rerun `python -m pytest -q tests` from the repository root.
+
+See the [testing checklist](tests/testing_checklist.md) for planned test cases.
 
 ## Documentation
 
@@ -181,7 +205,7 @@ Use `tests` at the end so pytest only looks in this project. The title and auth 
 | Genres and platforms (M5) | Not started (empty files) |
 | Protected routes | Not started |
 | Search and filters, Redis caching, background sync | Not started |
-| Tests | Health tests done; title and auth tests prepared |
+| Tests | Root health and title API: 25 passed, 5 expected failures. Standalone M2 auth: 31 passed. Root auth integration tests are blocked during collection. |
 
 Full details, review findings and the to-do list per member are in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 
@@ -192,7 +216,7 @@ Full details, review findings and the to-do list per member are in [docs/PROJECT
 | 1 | Project scaffolding, models, schemas, database setup, Alembic | Mostly done; genres and platforms missing |
 | 2 | JWT authentication, registration/login, catalog CRUD, protected routes | Catalog CRUD done; auth written but not connected; no protected routes |
 | 3 | Filtering by genre/year/platform, Redis caching | Not started |
-| 4 | Background sync (BackgroundTasks or Celery), Pytest/HTTPX tests | Not started; health tests done |
+| 4 | Background sync (BackgroundTasks or Celery), Pytest/HTTPX tests | Background sync pending. Health, title, and standalone M2 auth suites ran. Root auth integration tests are blocked.|
 
 ## Team Workflow
 
