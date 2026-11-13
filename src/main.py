@@ -17,5 +17,3 @@ def home():
     }
 
 
-@app.get("/health")
-def health_check():
