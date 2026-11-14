@@ -2,6 +2,8 @@
 
 A FastAPI backend for managing a catalog of movies and web series. A title stores its name, content type, release year, language, and optional description, runtime, and season count. The main app uses Pydantic for validation and SQLAlchemy for persistence.
 
+Background synchronization is planned as a simulation using sample data.
+
 ## API endpoints
 
 | Method | Path | Behavior |
@@ -60,6 +62,41 @@ With the server running, use Swagger UI to check the API against a local develop
 
 The root `tests/` folder contains a [test checklist](tests/testing_checklist.md). The separate M2 milestone includes its own authentication tests.
 
+## Running Tests
+
+Run these commands from the repository root with your virtual environment active. Run the extracted M2 suite separately because it has its own `src` and `tests` packages.
+
+### Root app health and title API
+
+```powershell
+python -m pip install -r requirements.txt pytest httpx
+python -m pytest -q tests/test_health.py tests/test_titles_api.py
+```
+
+Verified on Windows with Python 3.14: **25 passed, 5 expected failures (`xfail`), and 1 Starlette deprecation warning**. The title tests use an in-memory SQLite database.
+
+### Standalone M2 authentication
+
+```powershell
+Push-Location -LiteralPath '.\M2_extracted_files\python project work M2'
+try {
+    python -m pip install -r requirements.txt
+    if ($LASTEXITCODE -eq 0) {
+        python -m pytest -q tests
+    }
+} finally {
+    Pop-Location
+}
+```
+
+Verified on Windows with Python 3.14: **31 passed**.
+
+### Root app authentication integration
+
+`tests/test_auth_api.py` and `tests/test_auth_validation.py` are blocked during collection because the root app does not have `src.core.security`. After integrating M2's auth code into the root app, rerun `python -m pytest -q tests` from the repository root.
+
+See the [testing checklist](tests/testing_checklist.md) for planned test cases.
+
 ## Repository guide
 
 | Path | Contents |
@@ -75,3 +112,37 @@ The root `tests/` folder contains a [test checklist](tests/testing_checklist.md)
 - [Title field specification](TITLE_FIELDS.md)
 - [API requirements](docs/API_ENDPOINTS.md)
 - [Module descriptions](docs/MODULES.md)
+- [Project status and to-do list](docs/PROJECT_STATUS.md)
+
+## Project Status
+
+| Area | Status |
+|---|---|
+| FastAPI app, `/` and `/health` | Done |
+| Database config, session, Alembic setup (M3) | Done |
+| Titles: model, schemas, CRUD endpoints, service (M4) | Done, no login required yet |
+| User authentication: model, schemas, register and login (M2) | Written, not yet moved into `src/` or connected |
+| Migrations | Users migration exists in M2's folder; no titles migration yet |
+| Genres and platforms (M5) | Not started (empty files) |
+| Protected routes | Not started |
+| Search and filters, Redis caching, background sync | Not started |
+| Tests | Root health and title API: 25 passed, 5 expected failures. Standalone M2 auth: 31 passed. Root auth integration tests are blocked during collection. |
+
+Full details, review findings and the to-do list per member are in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
+
+## Four-Week Roadmap
+
+| Week | Work | Progress |
+|---|---|---|
+| 1 | Project scaffolding, models, schemas, database setup, Alembic | Mostly done; genres and platforms missing |
+| 2 | JWT authentication, registration/login, catalog CRUD, protected routes | Catalog CRUD done; auth written but not connected; no protected routes |
+| 3 | Filtering by genre/year/platform, Redis caching | Not started |
+| 4 | Background sync (BackgroundTasks or Celery), Pytest/HTTPX tests | Background sync pending. Health, title, and standalone M2 auth suites ran. Root auth integration tests are blocked.|
+
+## Team Workflow
+
+- Work on feature branches, not directly on `main`.
+- Make small commits with clear messages; review via pull requests.
+- Pull the latest `main` before starting new work.
+- Never commit passwords, secret keys, database credentials or `.env` files.
+- Do not use spaces at the end of file names (they break checkouts on Windows).
