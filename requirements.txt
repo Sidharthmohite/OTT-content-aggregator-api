@@ -6,4 +6,6 @@ pydantic-settings
 alembic
 python-dotenv
 psycopg[binary]
-PyJWTPyJWT
+PyJWT
+passlib
+bcrypt
