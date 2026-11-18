@@ -5,9 +5,7 @@ psycopg2-binary
 pydantic-settings
 alembic
 python-dotenv
-python-multipart
+psycopg[binary]
 PyJWT
-passlib[bcrypt]
-bcrypt<5.0.0
-pytest
-httpx
+passlib
+bcrypt

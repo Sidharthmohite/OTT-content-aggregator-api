@@ -1,5 +1,5 @@
 """Security utilities for password hashing, verification, and JWT handling.
-Part of M2 Authentication Module.
+Part of M2 Authentication Preparation.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -16,13 +16,7 @@ except ImportError:  # pragma: no cover
     HAS_PASSLIB = False
 
 import jwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-
 from src.core.config import settings
-
-# OAuth2 scheme for extracting Bearer tokens from the Authorization header
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -121,29 +115,3 @@ def decode_access_token(token: str) -> Optional[dict[str, Any]]:
         return payload
     except jwt.PyJWTError:
         return None
-
-
-def get_current_user_id(token: str = Depends(oauth2_scheme)) -> int:
-    """FastAPI dependency that extracts and validates the current user ID from a JWT.
-
-    Raises HTTP 401 if the token is missing, invalid, expired, or malformed.
-    """
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials.",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    payload = decode_access_token(token)
-    if payload is None:
-        raise credentials_exception
-
-    user_id_str: Optional[str] = payload.get("sub")
-    if user_id_str is None:
-        raise credentials_exception
-
-    try:
-        user_id = int(user_id_str)
-    except (ValueError, TypeError):
-        raise credentials_exception
-
-    return user_id

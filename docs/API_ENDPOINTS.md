@@ -54,15 +54,12 @@ Example create request:
 
 ## Users / Authentication, owner M2
 
-Code: `src/api/auth.py`. The main app registers the auth router alongside the titles router. **Fully Implemented.**
+Code: `src/api/auth.py`. The main app registers the auth router alongside the titles router.
 
 | Method | Endpoint | Success | Errors | Purpose |
 |---|---|---|---|---|
-| POST | `/auth/register` | 201, user data (no password) | 409 duplicate email or username; 422 invalid data | Register a new user |
-| POST | `/auth/login` | 200, `{"access_token": "...", "token_type": "bearer"}` | 401 invalid credentials; 403 inactive account; 422 | Log in with username or email (JSON) |
-| POST | `/auth/token` | 200, `{"access_token": "...", "token_type": "bearer"}` | 401 invalid credentials; 403 inactive account; 422 | OAuth2 form-data login (Swagger UI Authorize button) |
-| GET | `/auth/me` | 200, `UserResponse` | 401 invalid/expired token; 403 inactive account; 404 user not found | Get current authenticated user profile |
-| PATCH | `/auth/me` | 200, updated `UserResponse` | 401 unauthorized; 409 duplicate email/username; 422 invalid data | Update current user profile |
+| POST | `/auth/register` | 201, user data (no password) | 409 duplicate email or username; 422 invalid data | Register a user |
+| POST | `/auth/login` | 200, `{"access_token": "...", "token_type": "bearer"}` | 401 `Invalid username/email or password.`; 422 | Log in with username or email |
 
 ### Register request (`UserCreate`)
 
@@ -82,26 +79,9 @@ The response (`UserResponse`) has `id`, `email`, `username`, `full_name`, `is_ac
 { "username_or_email": "john_doe", "password": "SecurePass123!" }
 ```
 
-The token holds the user id (`sub`) and `username`, and expires after `ACCESS_TOKEN_EXPIRE_MINUTES` (30 by default). Inactive users are rejected with HTTP 403.
+The token holds the user id (`sub`) and `username`, and expires after `ACCESS_TOKEN_EXPIRE_MINUTES` (30 by default).
 
-### Profile Request (`GET /auth/me`)
-
-Headers:
-`Authorization: Bearer <access_token>`
-
-Response (HTTP 200):
-```json
-{
-  "id": 1,
-  "email": "john@example.com",
-  "username": "john_doe",
-  "full_name": "John Doe",
-  "is_active": true,
-  "is_superuser": false,
-  "created_at": "2026-11-18T14:30:00Z",
-  "updated_at": null
-}
-```
+Not built yet: any route that requires a token (no "current user" dependency exists), a profile route, and a route to update a user. `UserService.update_user` exists, but no endpoint uses it.
 
 ## Genres and OTT Platforms, owner M5
 

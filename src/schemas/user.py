@@ -7,11 +7,9 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
-# Regular expression for stricter email validation
-# Rejects: leading/trailing dots in local, consecutive dots, leading hyphen in domain,
-# trailing dot/hyphen in domain labels, and double-dot in domain.
+# Regular expression for RFC 5322 compliant email validation
 EMAIL_REGEX = re.compile(
-    r"^[a-zA-Z0-9]([a-zA-Z0-9_.+-]*[a-zA-Z0-9])?@[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$"
+    r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
 )
 
 # Regular expression for username validation (alphanumeric, underscores, hyphens)
