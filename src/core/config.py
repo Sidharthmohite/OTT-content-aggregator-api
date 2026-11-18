@@ -1,4 +1,8 @@
+import warnings
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+_DEFAULT_SECRET = "your_secret_key_here"
 
 
 class Settings(BaseSettings):
@@ -13,7 +17,7 @@ class Settings(BaseSettings):
     )
 
     # JWT Authentication settings (for M2)
-    SECRET_KEY: str = "your_secret_key_here"
+    SECRET_KEY: str = _DEFAULT_SECRET
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
@@ -28,3 +32,12 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Emit a loud warning when running with the insecure default secret
+if settings.SECRET_KEY == _DEFAULT_SECRET:
+    warnings.warn(
+        "⚠  SECRET_KEY is set to the public default value. "
+        "Set a strong, unique SECRET_KEY in your .env file or environment variables "
+        "before deploying to production.",
+        stacklevel=1,
+    )
