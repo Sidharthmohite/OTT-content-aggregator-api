@@ -1,6 +1,6 @@
 # API Endpoint Documentation
 
-Status key: **Implemented** = in `src/` on `main` and registered in `src/main.py`; **Written, not connected** = code is in the repo but not in `src/`, so the app does not use it yet; **Planned** = not written yet.
+Implemented routes are registered in the main FastAPI application.
 
 ## App basics
 
@@ -24,7 +24,7 @@ Code: `src/api/titles.py`, merged into `main`. The router is registered in `src/
 Notes:
 - There is no `PUT`; updates use `PATCH` with only the fields to change.
 - These routes are **not protected**: no login token is required yet.
-- The paths end with a slash (`/titles/`). Calling `/titles` without it redirects.
+- The list and create collection path is `/titles/`. Item paths use `/titles/{title_id}`.
 - Not built yet: search by name, filtering by genre / year / platform, and linking a title to genres and platforms.
 
 ### Title fields (`TitleCreate`)
@@ -54,7 +54,7 @@ Example create request:
 
 ## Users / Authentication, owner M2
 
-Code: `M2_extracted_files/python project work M2/src/api/routes/auth.py`. **Written, not connected:** it is not inside `src/`, and `src/main.py` does not include the auth router. The routes below only work once M2 moves the code into `src/` and registers the router.
+Code: `src/api/auth.py`. The main app registers the auth router alongside the titles router.
 
 | Method | Endpoint | Success | Errors | Purpose |
 |---|---|---|---|---|
@@ -92,7 +92,7 @@ Not built yet: any route that requires a token (no "current user" dependency exi
 | GET | `/platforms` | Planned | List OTT platforms |
 | POST | `/platforms` | Planned | Create a platform (name should be unique) |
 
-`src/api/genres.py` and `src/api/platforms.py` exist in the repo, but no code from M5 has been confirmed yet.
+Genre and platform models and join tables exist. The corresponding API modules are empty and no genre or platform router is registered.
 
 ## Background sync (Week 4)
 
