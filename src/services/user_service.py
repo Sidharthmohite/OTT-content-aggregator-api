@@ -192,7 +192,12 @@ class UserService:
     def authenticate_user(
         cls, db: Any, username_or_email: str, password: str
     ) -> Optional[User]:
-        """Authenticate a user by email or username and verify password."""
+        """Authenticate a user by email or username and verify password.
+
+        Returns the User object if credentials are valid (the caller should
+        then check ``user.is_active`` and decide the HTTP status).
+        Returns None when the user does not exist or the password is wrong.
+        """
         user = cls.get_user_by_email(db, username_or_email)
         if not user:
             user = cls.get_user_by_username(db, username_or_email)
