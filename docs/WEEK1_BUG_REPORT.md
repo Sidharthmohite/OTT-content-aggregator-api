@@ -1,16 +1,44 @@
 ﻿# Week 1 Bug Report and Pending Issues
 
-| ID | Open issue | Expected outcome or decision |
-| --- | --- | --- |
-| AUTH-01 | Inactive users can log in. | Reject login for inactive accounts. |
-| AUTH-02 | Email rules accept malformed domains. | Reject `a@b..`, `a@b.-`, and `a@-b.com`. |
-| AUTH-03 | The test run warned about a 20-byte JWT signing key. | Review local/test secret setup and verify the warnings are resolved. |
-| CAT-01 | Blank language is accepted. | Reject empty input. |
-| CAT-02 | Movie season counts and web-series runtime values are accepted. | Decide and enforce the field rules by content type. |
-| CAT-03 | PATCH permits a title longer than the database column. | Return a validation error for input over 255 characters. |
-| CAT-04 | Duplicate titles can be stored. | Agree on title identity before enforcing uniqueness. |
-| QA-01 | Starlette emitted an HTTPX TestClient deprecation warning. | Review the test dependency setup. |
-| QA-02 | Live Swagger screenshots | Resolved. All 11 screenshots are included. |
-| QA-03 | Swagger marks the actual login 401 and missing-title 404 as undocumented. | Declare error responses in OpenAPI. |
+Updated on 19 November 2026 for branch `fix/week1-test-cleanup`.
 
-Earlier collection errors, the SQLAlchemy relationship error, and the missing health route were resolved in PR #12. PostgreSQL successfully applied the initial migration after the local database was configured. Dedicated genre/platform APIs, protected routes, search/filtering, Redis, and background sync remain roadmap items. Confirm Week 1 scope with the team before treating later milestones as acceptance criteria.
+## Latest verification
+
+- Full automated suite: 176 passed, 0 failed.
+- Expected failures and unexpected passes: 0.
+- Remaining warnings: 1 Starlette TestClient deprecation.
+- PostgreSQL revision: `9e811ea57f63 (head)`.
+- Alembic check: No new upgrade operations detected.
+
+## Issue status
+
+| ID | Issue | Status |
+| --- | --- | --- |
+| AUTH-01 | Inactive users could log in | Resolved. Regression test passes |
+| AUTH-02 | Malformed email domains were accepted | Resolved. Regression tests pass |
+| AUTH-03 | Default or short JWT signing key | Resolved for the verified terminal session. Persistent local configuration is pending |
+| CAT-01 | Blank language was accepted | Resolved through language validation |
+| CAT-02 | Movie and web-series fields could conflict | Resolved for creation and combined-record PATCH validation |
+| CAT-03 | PATCH accepted titles longer than 255 characters | Resolved through schema validation |
+| CAT-04 | Duplicate title identities were accepted | Resolved in SQLite tests. PostgreSQL constraint applied. Live API verification is pending |
+| QA-01 | Starlette TestClient deprecation warning | Open. One warning remains |
+| QA-02 | Live API screenshots | Eleven earlier checks and screenshots are included. Cleanup behavior needs new live evidence |
+| QA-03 | Missing OpenAPI error-response declarations | Open. Recheck current declarations for HTTP 404, 409, and 422 |
+
+## Duplicate-title behavior
+
+Duplicate identity uses the case-sensitive combination of title, content type, release year, and language.
+
+The `uq_titles_identity` constraint is included in migration `9e811ea57f63`, which was applied to local PostgreSQL. No duplicate groups were found before the migration.
+
+POST and PATCH duplicate requests return HTTP 409 in the automated SQLite tests. A rejected duplicate PATCH preserves the record, and a subsequent valid update succeeds.
+
+## Remaining work
+
+- Persist a unique local JWT secret outside Git.
+- Verify duplicate handling and PATCH validation against the live PostgreSQL API.
+- Review the test-client deprecation warning.
+- Update API and module documentation.
+- Commit, push, and submit the cleanup branch through a separate PR targeting `main`.
+
+The current fixes are verified locally. Publication and review of the cleanup branch remain pending.

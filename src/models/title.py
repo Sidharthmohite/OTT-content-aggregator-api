@@ -1,3 +1,13 @@
+from sqlalchemy import (
+    CheckConstraint,
+    Column,
+    DateTime,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
+
 from sqlalchemy import CheckConstraint, Column, DateTime, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -38,5 +48,12 @@ class Title(Base):
         CheckConstraint(
             "content_type IN ('movie', 'web_series')",
             name="check_content_type",
+        ),
+        UniqueConstraint(
+            "title",
+            "content_type",
+            "release_year",
+            "language",
+            name="uq_titles_identity",
         ),
     )
