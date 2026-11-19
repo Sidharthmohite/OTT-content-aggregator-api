@@ -26,6 +26,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from src.core.config import check_secret_key_security, settings
 from src.core.database import Base, get_db
 from src.core.security import (
     create_access_token,
@@ -590,3 +591,37 @@ class TestEdgeCases:
         r = _register(client, full_name="日本語テスト", email="uni@test.com", username="uni_user")
         assert r.status_code == 201
         assert r.json()["full_name"] == "日本語テスト"
+
+
+# ===========================================================================
+# 11. SECRET KEY CONFIGURATION AND WARNING VERIFICATION
+# ===========================================================================
+class TestSecretKeySecurity:
+    def test_default_secret_key_triggers_warning(self):
+        """Verifies that the default placeholder SECRET_KEY triggers a security warning."""
+        with pytest.warns(UserWarning, match="SECRET_KEY is set to a default or weak value"):
+            warned = check_secret_key_security("your_secret_key_here")
+            assert warned is True
+
+    @pytest.mark.parametrize("weak_key", ["secret", "changeme", "password", "short", "", "a" * 31])
+    def test_weak_or_short_secret_key_triggers_warning(self, weak_key):
+        """Verifies that short (<32 chars) or common passwords trigger a security warning."""
+        with pytest.warns(UserWarning, match="SECRET_KEY is set to a default or weak value"):
+            warned = check_secret_key_security(weak_key)
+            assert warned is True
+
+    def test_strong_secret_key_no_warning(self):
+        """Verifies that a strong 32+ character key does not emit any warning."""
+        import warnings
+        with warnings.catch_warnings(record=True) as record:
+            warnings.simplefilter("always")
+            warned = check_secret_key_security("c1960b9251a44d46af7167fe54c4508c5dcb8e85a1ca1e3258834607a42da34c")
+            assert warned is False
+            assert len(record) == 0
+
+    def test_permanent_local_secret_key_is_configured(self):
+        """Verifies that the permanent local SECRET_KEY is set, non-default, and >= 32 chars."""
+        assert settings.SECRET_KEY is not None
+        assert settings.SECRET_KEY != "your_secret_key_here"
+        assert len(settings.SECRET_KEY) >= 32
+

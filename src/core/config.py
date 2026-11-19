@@ -3,6 +3,33 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 _DEFAULT_SECRET = "your_secret_key_here"
+_INSECURE_SECRETS = {
+    _DEFAULT_SECRET,
+    "secret",
+    "secret_key",
+    "changeme",
+    "password",
+    "admin",
+    "",
+}
+
+
+def check_secret_key_security(secret_key: str) -> bool:
+    """Check if the SECRET_KEY is default, insecure, or too weak.
+
+    Emits a UserWarning if the key is insecure.
+    Returns True if a warning was emitted, False if secure.
+    """
+    if not secret_key or secret_key in _INSECURE_SECRETS or len(secret_key) < 32:
+        warnings.warn(
+            "⚠  SECRET_KEY is set to a default or weak value. "
+            "Set a strong, random SECRET_KEY of at least 32 characters in your .env file "
+            "or environment variables before deploying to production.",
+            category=UserWarning,
+            stacklevel=2,
+        )
+        return True
+    return False
 
 
 class Settings(BaseSettings):
@@ -33,11 +60,5 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# Emit a loud warning when running with the insecure default secret
-if settings.SECRET_KEY == _DEFAULT_SECRET:
-    warnings.warn(
-        "⚠  SECRET_KEY is set to the public default value. "
-        "Set a strong, unique SECRET_KEY in your .env file or environment variables "
-        "before deploying to production.",
-        stacklevel=1,
-    )
+# Check and warn if using default/weak secret
+check_secret_key_security(settings.SECRET_KEY)
