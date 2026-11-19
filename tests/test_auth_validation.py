@@ -28,9 +28,6 @@ def test_email_is_trimmed_and_lowercased():
 def test_bad_emails_rejected(bad):
     with pytest.raises(ValueError):
         validate_email_format(bad)
-
-
-@pytest.mark.xfail(reason="email regex is loose: accepts a@b.., a@b.- and a@-b.com")
 @pytest.mark.parametrize("bad", ["a@b..", "a@b.-", "a@-b.com"])
 def test_gap_loose_email_regex(bad):
     with pytest.raises(ValueError):

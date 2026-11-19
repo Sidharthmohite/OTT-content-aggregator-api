@@ -142,9 +142,6 @@ def test_unknown_user_same_message_as_wrong_password(client):
     unknown = client.post("/auth/login", json={"username_or_email": "nobody", "password": "WrongPass123!"})
     assert unknown.status_code == 401
     assert unknown.json() == wrong.json()
-
-
-@pytest.mark.xfail(reason="authenticate_user does not check is_active")
 def test_gap_inactive_user_cannot_login(client):
     client.post("/auth/register", json={**USER, "is_active": False})
     r = client.post("/auth/login", json={"username_or_email": "john_doe", "password": USER["password"]})

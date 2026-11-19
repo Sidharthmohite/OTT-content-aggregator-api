@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-
+from sqlalchemy.exc import IntegrityError
 from src.models.title import Title
 from src.schemas.title import TitleCreate, TitleUpdate
 
@@ -16,7 +16,7 @@ def create_title(db: Session, title_data: TitleCreate):
     new_title = Title(**title_data.model_dump())
 
     db.add(new_title)
-    db.commit()
+    commit_title(db)
     db.refresh(new_title)
 
     return new_title
@@ -25,19 +25,29 @@ def create_title(db: Session, title_data: TitleCreate):
 def update_title(
     db: Session,
     title_id: int,
-    title_data: TitleUpdate
+    title_data: TitleUpdate,
 ):
     title = get_title(db, title_id)
 
     if title is None:
         return None
 
-    update_data = title_data.model_dump(exclude_unset=True)
+    changes = title_data.model_dump(exclude_unset=True)
 
-    for key, value in update_data.items():
-        setattr(title, key, value)
+    current_data = {
+        field: getattr(title, field)
+        for field in TitleCreate.model_fields
+    }
 
-    db.commit()
+    validated = TitleCreate.model_validate({
+        **current_data,
+        **changes,
+    })
+
+    for field in changes:
+        setattr(title, field, getattr(validated, field))
+
+    commit_title(db)
     db.refresh(title)
 
     return title
@@ -53,3 +63,33 @@ def delete_title(db: Session, title_id: int):
     db.commit()
 
     return True
+class DuplicateTitleError(Exception):
+    pass
+
+
+def commit_title(db: Session):
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+
+        constraint_name = getattr(
+            getattr(exc.orig, "diag", None),
+            "constraint_name",
+            None,
+        )
+        sqlite_duplicate = (
+            "UNIQUE constraint failed: titles.title, "
+            "titles.content_type, titles.release_year, titles.language"
+        )
+
+        if (
+            constraint_name == "uq_titles_identity"
+            or sqlite_duplicate in str(exc.orig)
+        ):
+            raise DuplicateTitleError(
+                "A title with the same name, content type, "
+                "release year, and language already exists."
+            ) from exc
+
+        raise
