@@ -1,5 +1,7 @@
 # Module Descriptions
 
+The latest verification is recorded in [WEEK1_FINAL_VERIFICATION.md](WEEK1_FINAL_VERIFICATION.md). Its current results supersede older counts and pending-status statements below.
+
 Updated on 19 November 2026 for branch `fix/week1-test-cleanup`.
 
 | Module | Current implementation |
