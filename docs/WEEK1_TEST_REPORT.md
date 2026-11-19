@@ -1,4 +1,6 @@
-﻿# Week 1 Testing Report
+# Week 1 Testing Report
+
+The latest verification is recorded in [WEEK1_FINAL_VERIFICATION.md](WEEK1_FINAL_VERIFICATION.md). Its current results supersede older counts and pending-status statements below.
 
 ## Latest verification
 

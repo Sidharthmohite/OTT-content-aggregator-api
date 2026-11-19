@@ -19,7 +19,13 @@ def read_titles(db: Session = Depends(get_db)):
     return catalog_service.get_titles(db)
 
 
-@router.get("/{title_id}", response_model=TitleResponse)
+@router.get(
+    "/{title_id}",
+    response_model=TitleResponse,
+    responses={
+        404: {"description": "Title not found"},
+    },
+)
 def read_title(
     title_id: int,
     db: Session = Depends(get_db),
@@ -36,6 +42,9 @@ def read_title(
     "/",
     response_model=TitleResponse,
     status_code=status.HTTP_201_CREATED,
+    responses={
+        409: {"description": "Duplicate title identity"},
+    },
 )
 def create_title(
     title_data: TitleCreate,
@@ -47,7 +56,14 @@ def create_title(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
-@router.patch("/{title_id}", response_model=TitleResponse)
+@router.patch(
+    "/{title_id}",
+    response_model=TitleResponse,
+    responses={
+        404: {"description": "Title not found"},
+        409: {"description": "Duplicate title identity"},
+    },
+)
 def update_title(
     title_id: int,
     title_data: TitleUpdate,
@@ -70,7 +86,12 @@ def update_title(
     return title
 
 
-@router.delete("/{title_id}")
+@router.delete(
+    "/{title_id}",
+    responses={
+        404: {"description": "Title not found"},
+    },
+)
 def delete_title(
     title_id: int,
     db: Session = Depends(get_db),

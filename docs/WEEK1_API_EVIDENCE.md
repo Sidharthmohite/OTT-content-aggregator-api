@@ -1,4 +1,6 @@
-﻿# Week 1 Live API Evidence
+# Week 1 Live API Evidence
+
+The latest verification is recorded in [WEEK1_FINAL_VERIFICATION.md](WEEK1_FINAL_VERIFICATION.md). Its current results supersede older counts and pending-status statements below.
 
 The requests below were executed in local Swagger UI on port 8001 on 18 November 2026 (IST). Codes were verified under **Server response** in the screenshots shared during testing.
 

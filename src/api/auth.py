@@ -29,6 +29,7 @@ if HAS_FASTAPI:
         response_model=UserResponse,
         status_code=status.HTTP_201_CREATED,
         summary="Register a new user account",
+        responses={409: {'description': 'Duplicate email or username'}},
     )
     def register_user(
         user_in: UserCreate,
@@ -53,6 +54,7 @@ if HAS_FASTAPI:
         "/login",
         response_model=Token,
         summary="Authenticate user and return access token",
+        responses={401: {'description': 'Invalid credentials'}, 403: {'description': 'Inactive account'}},
     )
     def login_user(
         login_data: UserLogin,
@@ -86,6 +88,7 @@ if HAS_FASTAPI:
         response_model=Token,
         summary="OAuth2-compatible login (form data)",
         include_in_schema=True,
+        responses={401: {'description': 'Invalid credentials'}, 403: {'description': 'Inactive account'}},
     )
     def login_for_access_token(
         form_data: OAuth2PasswordRequestForm = Depends(),
@@ -119,6 +122,7 @@ if HAS_FASTAPI:
         "/me",
         response_model=UserResponse,
         summary="Get current authenticated user profile",
+        responses={401: {'description': 'Invalid or expired token'}, 403: {'description': 'Inactive account'}, 404: {'description': 'User not found'}},
     )
     def get_current_user_profile(
         user_id: int = Depends(get_current_user_id),
@@ -142,6 +146,7 @@ if HAS_FASTAPI:
         "/me",
         response_model=UserResponse,
         summary="Update current user profile",
+        responses={401: {'description': 'Invalid or expired token'}, 404: {'description': 'User not found'}, 409: {'description': 'Duplicate email or username'}},
     )
     def update_current_user_profile(
         user_update: UserUpdate,

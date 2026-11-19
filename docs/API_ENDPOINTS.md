@@ -1,5 +1,7 @@
 # API Endpoint Documentation
 
+The latest verification is recorded in [WEEK1_FINAL_VERIFICATION.md](WEEK1_FINAL_VERIFICATION.md). Its current results supersede older counts and pending-status statements below.
+
 Implemented routes are registered in the main FastAPI application.
 
 This document includes the title-validation changes on branch `fix/week1-test-cleanup`.
