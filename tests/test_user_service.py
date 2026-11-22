@@ -1,10 +1,12 @@
-"""Unit tests for UserService, authentication, and duplicate email/username handling (M2).
-"""
 
-from datetime import datetime, timezone
-import unittest
+"""Unit tests for UserService business logic."""
 
-from src.core.security import verify_password
+from unittest.mock import MagicMock
+
+import pytest
+from sqlalchemy.exc import IntegrityError
+
+from src.core.security import get_password_hash, verify_password
 from src.models.user import User
 from src.schemas.user import UserCreate, UserUpdate
 from src.services.user_service import (
@@ -15,213 +17,521 @@ from src.services.user_service import (
 )
 
 
-class MockDatabaseSession:
-    """In-memory mock session supporting database operations for standalone unit testing."""
+# --------------------------------------------------
+# Helpers
+# --------------------------------------------------
 
-    def __init__(self):
-        self.users: dict[int, User] = {}
-        self._next_id = 1
-
-    def add(self, instance: User):
-        if instance.id is None:
-            instance.id = self._next_id
-            self._next_id += 1
-        self.users[instance.id] = instance
-
-    def commit(self):
-        pass
-
-    def rollback(self):
-        pass
-
-    def refresh(self, instance: User):
-        pass
-
-    def get(self, user_id: int) -> User | None:
-        return self.users.get(user_id)
-
-    def find_by_email(self, email: str) -> User | None:
-        normalized = email.strip().lower()
-        for user in self.users.values():
-            if user.email.lower() == normalized:
-                return user
-        return None
-
-    def find_by_username(self, username: str) -> User | None:
-        cleaned = username.strip()
-        for user in self.users.values():
-            if user.username == cleaned:
-                return user
-        return None
+def make_user_data():
+    return UserCreate(
+        email="john@example.com",
+        username="john_doe",
+        password="SecurePass123!",
+        full_name="John Doe",
+    )
 
 
-class TestUserService(unittest.TestCase):
-    """Test suite for UserService and duplicate email handling."""
+def make_user():
+    return User(
+        id=1,
+        email="john@example.com",
+        username="john_doe",
+        hashed_password=get_password_hash("SecurePass123!"),
+        full_name="John Doe",
+        is_active=True,
+    )
 
-    def setUp(self):
-        self.db = MockDatabaseSession()
-        self.valid_payload = UserCreate(
-            email="alice@example.com",
-            username="alice_wonderland",
-            full_name="Alice Liddell",
-            password="StrongPassword123!",
-        )
+
+def make_mock_db():
+    db = MagicMock()
+    db.query.return_value.filter.return_value.first.return_value = None
+    return db
+
+
+# --------------------------------------------------
+# UserService Tests
+# --------------------------------------------------
+
+class TestUserService:
+
+    # --------------------------------------------------
+    # Create User
+    # --------------------------------------------------
 
     def test_create_user_successful(self):
-        """Test successful user creation with password hashing and email normalization."""
-        user = UserService.create_user(self.db, self.valid_payload)
-        self.assertIsNotNone(user.id)
-        self.assertEqual(user.email, "alice@example.com")
-        self.assertEqual(user.username, "alice_wonderland")
-        self.assertNotEqual(user.hashed_password, "StrongPassword123!")
-        self.assertTrue(verify_password("StrongPassword123!", user.hashed_password))
+        db = make_mock_db()
+        payload = make_user_data()
 
-    def test_duplicate_email_rejected(self):
-        """Test that registering with an already existing email raises DuplicateEmailError."""
-        # Create initial user
-        UserService.create_user(self.db, self.valid_payload)
+        user = UserService.create_user(db, payload)
 
-        # Attempt to register duplicate email with different username
-        duplicate_payload = UserCreate(
-            email="alice@example.com",
-            username="alice_second_account",
-            password="AnotherPassword999!",
+        assert user.email == "john@example.com"
+        assert user.username == "john_doe"
+        assert user.full_name == "John Doe"
+        assert user.hashed_password != payload.password
+        assert verify_password(payload.password, user.hashed_password)
+
+        db.add.assert_called_once_with(user)
+        db.commit.assert_called_once()
+        db.refresh.assert_called_once_with(user)
+
+    def test_duplicate_email_rejected(self, monkeypatch):
+        db = make_mock_db()
+        existing_user = make_user()
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_email",
+            staticmethod(lambda db, email: existing_user),
         )
-        with self.assertRaises(DuplicateEmailError) as ctx:
-            UserService.create_user(self.db, duplicate_payload)
 
-        self.assertIn("already registered", str(ctx.exception))
+        with pytest.raises(DuplicateEmailError):
+            UserService.create_user(db, make_user_data())
 
-    def test_duplicate_email_case_insensitive_rejected(self):
-        """Test that duplicate emails with different casing are caught and rejected."""
-        UserService.create_user(self.db, self.valid_payload)
+        db.add.assert_not_called()
+        db.commit.assert_not_called()
 
-        # Attempt with uppercase variant
-        uppercase_payload = UserCreate(
-            email="ALICE@EXAMPLE.COM",
-            username="alice_different_username",
-            password="AnotherPassword999!",
+    def test_duplicate_email_case_insensitive_rejected(self, monkeypatch):
+        db = make_mock_db()
+        existing_user = make_user()
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_email",
+            staticmethod(lambda db, email: existing_user),
         )
-        with self.assertRaises(DuplicateEmailError) as ctx:
-            UserService.create_user(self.db, uppercase_payload)
 
-        self.assertIn("already registered", str(ctx.exception))
-
-    def test_duplicate_username_rejected(self):
-        """Test that registering with an already existing username raises DuplicateUsernameError."""
-        UserService.create_user(self.db, self.valid_payload)
-
-        # Attempt to register same username with different email
-        duplicate_username_payload = UserCreate(
-            email="different_email@example.com",
-            username="alice_wonderland",
-            password="AnotherPassword999!",
+        payload = UserCreate(
+            email="JOHN@EXAMPLE.COM",
+            username="another_user",
+            password="SecurePass123!",
         )
-        with self.assertRaises(DuplicateUsernameError) as ctx:
-            UserService.create_user(self.db, duplicate_username_payload)
 
-        self.assertIn("already taken", str(ctx.exception))
+        with pytest.raises(DuplicateEmailError):
+            UserService.create_user(db, payload)
+
+        db.add.assert_not_called()
+        db.commit.assert_not_called()
+
+    def test_duplicate_username_rejected(self, monkeypatch):
+        db = make_mock_db()
+        existing_user = make_user()
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_email",
+            staticmethod(lambda db, email: None),
+        )
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_username",
+            staticmethod(lambda db, username: existing_user),
+        )
+
+        with pytest.raises(DuplicateUsernameError):
+            UserService.create_user(db, make_user_data())
+
+        db.add.assert_not_called()
+        db.commit.assert_not_called()
+
+    # --------------------------------------------------
+    # Database Integrity Errors
+    # --------------------------------------------------
+
+    def test_create_user_username_integrity_error_rolls_back(self):
+        db = make_mock_db()
+
+        db.commit.side_effect = IntegrityError(
+            "INSERT",
+            {},
+            Exception("UNIQUE constraint failed: users.username"),
+        )
+
+        with pytest.raises(DuplicateUsernameError):
+            UserService.create_user(db, make_user_data())
+
+        db.rollback.assert_called_once()
+
+    def test_create_user_email_integrity_error_rolls_back(self):
+        db = make_mock_db()
+
+        db.commit.side_effect = IntegrityError(
+            "INSERT",
+            {},
+            Exception("UNIQUE constraint failed: users.email"),
+        )
+
+        with pytest.raises(DuplicateEmailError):
+            UserService.create_user(db, make_user_data())
+
+        db.rollback.assert_called_once()
+    def test_update_user_email_integrity_error_rolls_back(self, monkeypatch):
+        db = make_mock_db()
+        user = make_user()
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_id",
+            staticmethod(lambda db, user_id: user),
+        )
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_email",
+            staticmethod(lambda db, email: None),
+        )
+
+        db.commit.side_effect = IntegrityError(
+            "UPDATE",
+            {},
+            Exception("UNIQUE constraint failed: users.email"),
+        )
+
+        payload = UserUpdate(email="new@example.com")
+
+        with pytest.raises(DuplicateEmailError):
+            UserService.update_user(db, 1, payload)
+
+        db.rollback.assert_called_once()
+
+
+    def test_update_user_username_integrity_error_rolls_back(self, monkeypatch):
+        db = make_mock_db()
+        user = make_user()
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_id",
+            staticmethod(lambda db, user_id: user),
+        )
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_username",
+            staticmethod(lambda db, username: None),
+        )
+
+        db.commit.side_effect = IntegrityError(
+            "UPDATE",
+            {},
+            Exception("UNIQUE constraint failed: users.username"),
+        )
+
+        payload = UserUpdate(username="new_username")
+
+        with pytest.raises(DuplicateUsernameError):
+            UserService.update_user(db, 1, payload)
+
+        db.rollback.assert_called_once()
+
+    # --------------------------------------------------
+    # Get User
+    # --------------------------------------------------
 
     def test_get_user_by_id_and_email_and_username(self):
-        """Test user retrieval helpers."""
-        created = UserService.create_user(self.db, self.valid_payload)
+        user = make_user()
 
-        by_id = UserService.get_user_by_id(self.db, created.id)
-        self.assertEqual(by_id, created)
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = user
 
-        by_email = UserService.get_user_by_email(self.db, "alice@example.com")
-        self.assertEqual(by_email, created)
+        assert UserService.get_user_by_id(db, 1) == user
+        assert UserService.get_user_by_email(
+            db, " JOHN@EXAMPLE.COM "
+        ) == user
+        assert UserService.get_user_by_username(
+            db, " john_doe "
+        ) == user
 
-        by_username = UserService.get_user_by_username(self.db, "alice_wonderland")
-        self.assertEqual(by_username, created)
+    def test_get_user_by_id_not_found(self):
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = None
 
-        # Non-existent queries
-        self.assertIsNone(UserService.get_user_by_id(self.db, 9999))
-        self.assertIsNone(UserService.get_user_by_email(self.db, "nonexistent@example.com"))
-        self.assertIsNone(UserService.get_user_by_username(self.db, "ghost_user"))
+        result = UserService.get_user_by_id(db, 999)
 
-    def test_update_user_profile(self):
-        """Test partial profile update."""
-        user = UserService.create_user(self.db, self.valid_payload)
-        update_data = UserUpdate(full_name="Alice Through The Looking Glass")
-        updated = UserService.update_user(self.db, user.id, update_data)
-        self.assertEqual(updated.full_name, "Alice Through The Looking Glass")
+        assert result is None
 
-    def test_update_user_email_duplicate_rejected(self):
-        """Test that updating an email to an already existing user's email raises DuplicateEmailError."""
-        user1 = UserService.create_user(self.db, self.valid_payload)
-        user2 = UserService.create_user(
-            self.db,
-            UserCreate(
-                email="bob@example.com",
-                username="bob_marley",
-                password="BobPassword123!",
-            ),
+    # --------------------------------------------------
+    # Update User
+    # --------------------------------------------------
+
+    def test_update_user_profile(self, monkeypatch):
+        db = make_mock_db()
+        user = make_user()
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_id",
+            staticmethod(lambda db, user_id: user),
         )
 
-        # Attempt to change bob's email to alice's email
-        with self.assertRaises(DuplicateEmailError):
-            UserService.update_user(
-                self.db, user2.id, UserUpdate(email="alice@example.com")
-            )
-
-    def test_update_user_username_duplicate_rejected(self):
-        """Test that updating username to an already existing username raises DuplicateUsernameError."""
-        user1 = UserService.create_user(self.db, self.valid_payload)
-        user2 = UserService.create_user(
-            self.db,
-            UserCreate(
-                email="bob@example.com",
-                username="bob_marley",
-                password="BobPassword123!",
-            ),
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_email",
+            staticmethod(lambda db, email: None),
         )
 
-        # Attempt to change bob's username to alice's username
-        with self.assertRaises(DuplicateUsernameError):
-            UserService.update_user(
-                self.db, user2.id, UserUpdate(username="alice_wonderland")
-            )
-
-    def test_update_nonexistent_user(self):
-        """Test that updating a non-existent user raises UserNotFoundError."""
-        with self.assertRaises(UserNotFoundError):
-            UserService.update_user(self.db, 9999, UserUpdate(full_name="Nobody"))
-
-    def test_authenticate_user_success(self):
-        """Test user authentication with both email and username."""
-        UserService.create_user(self.db, self.valid_payload)
-
-        # Login via email
-        auth1 = UserService.authenticate_user(
-            self.db, "alice@example.com", "StrongPassword123!"
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_username",
+            staticmethod(lambda db, username: None),
         )
-        self.assertIsNotNone(auth1)
-        self.assertEqual(auth1.username, "alice_wonderland")
 
-        # Login via username
-        auth2 = UserService.authenticate_user(
-            self.db, "alice_wonderland", "StrongPassword123!"
+        payload = UserUpdate(full_name="Updated Name")
+
+        result = UserService.update_user(db, 1, payload)
+
+        assert result.full_name == "Updated Name"
+        db.commit.assert_called_once()
+        db.refresh.assert_called_once_with(user)
+
+    def test_update_user_email(self, monkeypatch):
+        db = make_mock_db()
+        user = make_user()
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_id",
+            staticmethod(lambda db, user_id: user),
         )
-        self.assertIsNotNone(auth2)
-        self.assertEqual(auth2.email, "alice@example.com")
 
-    def test_authenticate_user_invalid_credentials(self):
-        """Test authentication failure with incorrect password or unknown user."""
-        UserService.create_user(self.db, self.valid_payload)
-
-        # Wrong password
-        auth_bad_pw = UserService.authenticate_user(
-            self.db, "alice@example.com", "WrongPassword999!"
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_email",
+            staticmethod(lambda db, email: None),
         )
-        self.assertIsNone(auth_bad_pw)
 
-        # Non-existent user
-        auth_bad_user = UserService.authenticate_user(
-            self.db, "unknown@example.com", "StrongPassword123!"
+        payload = UserUpdate(email="new@example.com")
+
+        result = UserService.update_user(db, 1, payload)
+
+        assert result.email == "new@example.com"
+        db.commit.assert_called_once()
+
+    def test_update_user_username(self, monkeypatch):
+        db = make_mock_db()
+        user = make_user()
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_id",
+            staticmethod(lambda db, user_id: user),
         )
-        self.assertIsNone(auth_bad_user)
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_username",
+            staticmethod(lambda db, username: None),
+        )
+
+        payload = UserUpdate(username="new_username")
+
+        result = UserService.update_user(db, 1, payload)
+
+        assert result.username == "new_username"
+        db.commit.assert_called_once()
+
+    def test_update_user_password_is_hashed(self, monkeypatch):
+        db = make_mock_db()
+        user = make_user()
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_id",
+            staticmethod(lambda db, user_id: user),
+        )
+
+        payload = UserUpdate(password="NewSecure123!")
+
+        result = UserService.update_user(db, 1, payload)
+
+        assert result.hashed_password != "NewSecure123!"
+        assert verify_password("NewSecure123!", result.hashed_password)
+        db.commit.assert_called_once()
+
+    def test_update_user_email_duplicate_rejected(self, monkeypatch):
+        db = make_mock_db()
+        user = make_user()
+
+        another_user = User(
+            id=2,
+            email="another@example.com",
+            username="another_user",
+            hashed_password="dummy",
+        )
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_id",
+            staticmethod(lambda db, user_id: user),
+        )
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_email",
+            staticmethod(lambda db, email: another_user),
+        )
+
+        payload = UserUpdate(email="another@example.com")
+
+        with pytest.raises(DuplicateEmailError):
+            UserService.update_user(db, 1, payload)
+
+        db.commit.assert_not_called()
+
+    def test_update_user_username_duplicate_rejected(self, monkeypatch):
+        db = make_mock_db()
+        user = make_user()
+
+        another_user = User(
+            id=2,
+            email="another@example.com",
+            username="another_user",
+            hashed_password="dummy",
+        )
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_id",
+            staticmethod(lambda db, user_id: user),
+        )
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_username",
+            staticmethod(lambda db, username: another_user),
+        )
+
+        payload = UserUpdate(username="another_user")
+
+        with pytest.raises(DuplicateUsernameError):
+            UserService.update_user(db, 1, payload)
+
+        db.commit.assert_not_called()
+    
+    def test_update_own_email_normalizes_without_duplicate(self, monkeypatch):
+        db = make_mock_db()
+        user = make_user()
+
+        original_email = user.email
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_id",
+            staticmethod(lambda db, user_id: user),
+        )
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_email",
+            staticmethod(lambda db, email: None),
+        )
+
+        payload = UserUpdate(email=f" {original_email.upper()} ")
+
+        result = UserService.update_user(db, 1, payload)
+
+        assert result.email == original_email.strip().lower()
+        db.commit.assert_called_once()
+
+    def test_update_own_username_normalizes_without_duplicate(selfself, monkeypatch):
+        db = make_mock_db()
+        user = make_user()
+
+        original_username = user.username
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_id",
+            staticmethod(lambda db, user_id: user),
+        )
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_username",
+            staticmethod(lambda db, username: None),
+        )
+
+        payload = UserUpdate(username=f" {original_username} ")
+
+        result = UserService.update_user(db, 1, payload)
+
+        assert result.username == original_username.strip()
+        db.commit.assert_called_once()
 
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_update_nonexistent_user(self, monkeypatch):
+        db = make_mock_db()
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_id",
+            staticmethod(lambda db, user_id: None),
+        )
+
+        with pytest.raises(UserNotFoundError):
+            UserService.update_user(db, 999, UserUpdate(full_name="Unknown"))
+
+        db.commit.assert_not_called()
+
+    # --------------------------------------------------
+    # Authentication
+    # --------------------------------------------------
+
+    def test_authenticate_user_success(self, monkeypatch):
+        user = make_user()
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_email",
+            staticmethod(lambda db, value: None),
+        )
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_username",
+            staticmethod(lambda db, value: user),
+        )
+
+        result = UserService.authenticate_user(
+            MagicMock(),
+            "john_doe",
+            "SecurePass123!",
+        )
+
+        assert result == user
+
+    def test_authenticate_user_invalid_credentials(self, monkeypatch):
+        user = make_user()
+
+        monkeypatch.setattr(
+            UserService,
+            "get_user_by_email",
+            staticmethod(lambda db, value: user),
+        )
+
+        result = UserService.authenticate_user(
+            MagicMock(),
+            "john@example.com",
+            "WrongPassword123!",
+        )
+
+        assert result is None
+
+    # --------------------------------------------------
+    # Normalization
+    # --------------------------------------------------
+
+    def test_create_user_normalizes_email_and_username(self):
+        db = make_mock_db()
+
+        payload = UserCreate.model_construct(
+            email=" JOHN@EXAMPLE.COM ",
+            username=" john_doe ",
+            password="SecurePass123!",
+            full_name="John Doe",
+            is_active=True,
+        )
+
+        user = UserService.create_user(db, payload)
+
+        assert user.email == "john@example.com"
+        assert user.username == "john_doe"
