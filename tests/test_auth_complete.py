@@ -424,34 +424,96 @@ class TestGetAuthMe:
 # 7. PATCH /auth/me — PROFILE UPDATE
 # ===========================================================================
 class TestPatchAuthMe:
+
     def test_update_full_name(self, client):
         token = _get_token(client)
+
         r = client.patch(
             "/auth/me",
             json={"full_name": "Jonathan Doe"},
             headers={"Authorization": f"Bearer {token}"},
         )
+
         assert r.status_code == 200
         assert r.json()["full_name"] == "Jonathan Doe"
 
     def test_update_without_token_returns_401(self, client):
-        r = client.patch("/auth/me", json={"full_name": "New Name"})
+        r = client.patch(
+            "/auth/me",
+            json={"full_name": "New Name"},
+        )
+
         assert r.status_code == 401
 
     def test_update_email_to_duplicate_returns_409(self, client):
         # Register two users
         _register(client)
-        _register(client, email="other@example.com", username="other_user")
-        # Login as first user
+        _register(
+            client,
+            email="other@example.com",
+            username="other_user",
+        )
+
+        # Login as the first user
         r = _login(client)
         token = r.json()["access_token"]
-        # Try to change email to other user's email
+
+        # Try to change email to the other user's email
         r = client.patch(
             "/auth/me",
             json={"email": "other@example.com"},
             headers={"Authorization": f"Bearer {token}"},
         )
+
         assert r.status_code == 409
+
+    def test_update_username_to_duplicate_returns_409(self, client):
+        # Register two users
+        _register(client)
+        _register(
+            client,
+            email="other@example.com",
+            username="other_user",
+        )
+
+        # Login as the first user
+        r = _login(client)
+        token = r.json()["access_token"]
+
+        # Try to change username to the other user's username
+        r = client.patch(
+            "/auth/me",
+            json={"username": "other_user"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert r.status_code == 409
+
+    def test_update_nonexistent_user_returns_404(self, client, monkeypatch):
+        from src.api.auth import UserService, UserNotFoundError
+
+        def fake_update_user(db, user_id, user_update):
+            raise UserNotFoundError("User not found")
+
+        monkeypatch.setattr(
+            UserService,
+            "update_user",
+            fake_update_user,
+        )
+
+        token = create_access_token(
+            data={"sub": "9999", "username": "ghost"}
+        )
+
+        r = client.patch(
+            "/auth/me",
+            json={"full_name": "Ghost User"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert r.status_code == 404
+        assert r.json()["detail"] == "User not found"
+  
 
 
 # ===========================================================================

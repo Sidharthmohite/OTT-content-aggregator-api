@@ -93,3 +93,31 @@ def test_invalid_foreign_key_rejected(test_db, association_table):
             db.commit()
 
         db.rollback()
+def test_genre_repr():
+    genre = Genre(id=1, name="Action", description="Action movies")
+    assert repr(genre) == "<Genre(id=1, name='Action')>"
+
+
+def test_platform_repr():
+    platform = Platform(id=1, name="Netflix", description="Streaming platform")
+    assert repr(platform) == "<Platform(id=1, name='Netflix')>"
+
+
+def test_user_repr():
+    from src.models.user import User
+
+    user = User(
+        id=1,
+        email="test@example.com",
+        username="tester",
+        hashed_password="hashed_password",
+        full_name="Test User",
+        is_active=True,
+    )
+
+    result = repr(user)
+
+    assert "id=1" in result
+    assert "username='tester'" in result
+    assert "email='test@example.com'" in result
+    assert "is_active=True" in result

@@ -3,6 +3,8 @@ from fastapi.responses import JSONResponse
 
 from src.api.auth import router as auth_router
 from src.api.titles import router as titles_router
+from src.api.genres import router as genres_router
+from src.api.platforms import router as platforms_router
 
 app = FastAPI(
     title="OTT Content Aggregator API",
@@ -11,7 +13,6 @@ app = FastAPI(
 )
 
 
-# Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
@@ -22,6 +23,8 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 app.include_router(titles_router)
 app.include_router(auth_router)
+app.include_router(genres_router)
+app.include_router(platforms_router)
 
 
 @app.get("/")
