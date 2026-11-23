@@ -1,4 +1,4 @@
-﻿# Week 2: Genre and OTT Platform Management
+# Week 2: Genre and OTT Platform Management
 
 ## Implemented endpoints
 
@@ -32,5 +32,18 @@
 
 ## Live API evidence
 
-PostgreSQL endpoint status codes and screenshots have not yet been recorded
-in this report. Automated API tests are recorded separately above.
+Verified on 23 November 2026 against the locally configured PostgreSQL
+database using a temporary Uvicorn server on port 8010.
+
+| Check | Observed result |
+| --- | --- |
+| Create genre | 201 |
+| Duplicate genre | 409 |
+| List genres | 200; created record found |
+| Create OTT platform | 201 |
+| Duplicate OTT platform | 409 |
+| List OTT platforms | 200; created record found |
+
+All six live checks passed. Unique test names were used.
+The temporary server was stopped automatically after verification.
+Evidence is recorded from terminal output; screenshots are not included.
