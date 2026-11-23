@@ -513,6 +513,29 @@ class TestPatchAuthMe:
 
         assert r.status_code == 404
         assert r.json()["detail"] == "User not found"
+    def test_update_own_email_normalizes_email(self, client):
+        token = _get_token(client)
+
+        r = client.patch(
+            "/auth/me",
+            json={"email": "  NEWEMAIL@EXAMPLE.COM  "},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert r.status_code == 200
+        assert r.json()["email"] == "newemail@example.com"
+
+    def test_update_own_username_normalizes_username(self, client):
+        token = _get_token(client)
+
+        r = client.patch(
+            "/auth/me",
+            json={"username": "  new_username  "},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert r.status_code == 200
+        assert r.json()["username"] == "new_username"
   
 
 
