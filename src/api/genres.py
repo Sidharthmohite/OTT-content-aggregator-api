@@ -1,12 +1,9 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from src.core.database import get_db
 from src.schemas.genre import GenreCreate, GenreResponse, GenreUpdate
-from src.services import genre_service
-
-
-router = APIRouter(prefix="/genres", tags=["Genres"])
+from src.services import genre_servicerouter = APIRouter(prefix="/genres", tags=["Genres"])
 
 
 @router.get("/", response_model=list[GenreResponse])
@@ -57,8 +54,7 @@ def update_genre(
 ):
     try:
         genre = genre_service.update_genre(db, genre_id, genre_data)
-    except genre_service.DuplicateGenreError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+except genre_service.DuplicateGenreError as exc:        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     if genre is None:
         raise HTTPException(status_code=404, detail="Genre not found")
