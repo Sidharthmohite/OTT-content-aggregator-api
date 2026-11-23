@@ -1,49 +1,68 @@
-# Week 2: Genre and OTT Platform Management
+﻿# Week 2: Genre and OTT Platform Management
 
 ## Implemented endpoints
 
-| Method | Endpoint | Success | Errors |
-| --- | --- | --- | --- |
-| GET | /genres/ | 200 | |
-| POST | /genres/ | 201 | 409 duplicate name, 422 invalid input |
-| GET | /platforms/ | 200 | |
-| POST | /platforms/ | 201 | 409 duplicate name, 422 invalid input |
+Both /genres/ and /platforms/ support:
 
-## Validation and behavior
+| Method | Path | Success | Errors |
+| --- | --- | --- | --- |
+| GET | Collection | 200 | |
+| POST | Collection | 201 | 409, 422 |
+| GET | /{id} | 200 | 404, 422 |
+| PATCH | /{id} | 200 | 404, 409, 422 |
+| DELETE | /{id} | 200 | 404, 422 |
+
+## Behavior
 
 - Names are trimmed and must not be blank.
+- Explicit null names are rejected on PATCH.
 - Genre names allow up to 100 characters.
 - Platform names allow up to 150 characters.
-- Names use the existing case-sensitive database uniqueness rule.
-- Platform website URLs are optional and must use HTTP or HTTPS.
-- Lists are ordered by name and ID.
+- Names use case-sensitive database uniqueness.
+- Optional platform URLs use HTTP/HTTPS and allow up to 500 characters.
+- PATCH preserves omitted fields.
+- Description and platform website URL can be cleared with null.
+- Duplicate updates return 409 and preserve the stored record.
+- Deleting a genre/platform removes its title links and preserves titles.
+- OpenAPI declares not-found and duplicate responses.
 - These endpoints currently require no authentication.
-- Title associations and update/delete endpoints are outside this implementation.
 
-## Verified results
+## Automated verification
 
-- New genre/platform API tests: 27 passed.
-- Full automated suite: 212 passed, one tracked Starlette deprecation warning.
-- API tests use isolated in-memory SQLite databases.
-- PostgreSQL connection succeeded.
-- Alembic revision: 9e811ea57f63 (head).
+- Full suite: 258 passed, one tracked Starlette deprecation warning.
+- Initial genre/platform API suite: 27 passed.
+- Additional CRUD and relationship suite: 35 passed.
+- Tests use isolated SQLite databases.
+- Relationship tests enable SQLite foreign-key enforcement.
+- Tests verify persisted relationships, invalid foreign keys, association
+  cleanup, and title preservation after deleting a genre/platform.
+
+## PostgreSQL verification
+
+- Migration revision: 9e811ea57f63 (head).
 - Alembic check: No new upgrade operations detected.
-- git diff --check reported no whitespace errors.
+- No new migration was required.
 
-## Live API evidence
+Live HTTP verification completed on 23 November 2026 using a temporary
+Uvicorn server on port 8011 against the configured local PostgreSQL database.
 
-Verified on 23 November 2026 against the locally configured PostgreSQL
-database using a temporary Uvicorn server on port 8010.
+For both genres and platforms, verification covered:
+- Creation and retrieval.
+- Duplicate PATCH rejection with 409.
+- Null and blank name rejection with 422.
+- Record preservation after rejected updates.
+- Successful PATCH and persisted retrieval.
+- Deletion and subsequent GET/PATCH/DELETE returning 404.
 
-| Check | Observed result |
-| --- | --- |
-| Create genre | 201 |
-| Duplicate genre | 409 |
-| List genres | 200; created record found |
-| Create OTT platform | 201 |
-| Duplicate OTT platform | 409 |
-| List OTT platforms | 200; created record found |
+Platform checks also verified website URL updates and clearing with null.
+All live CRUD checks passed, and all records created by this CRUD run were
+deleted successfully. The temporary server stopped automatically.
 
-All six live checks passed. Unique test names were used.
-The temporary server was stopped automatically after verification.
-Evidence is recorded from terminal output; screenshots are not included.
+The earlier six create/duplicate/list checks also passed on port 8010.
+Live evidence is recorded from terminal output; screenshots are not included.
+Relationship and foreign-key verification above was performed in SQLite,
+not independently repeated against live PostgreSQL.
+
+## Remaining maintenance
+
+One Starlette TestClient deprecation warning remains tracked.
