@@ -38,7 +38,7 @@ def create_platform(
 ):
     try:
         return platform_service.create_platform(db, platform_data)
-    except platform_service.DuplicatePlatformError as exc:
+    except (platform_service.DuplicatePlatformError, ValueError) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
@@ -59,7 +59,7 @@ def update_platform(
         platform = platform_service.update_platform(
             db, platform_id, platform_data
         )
-    except platform_service.DuplicatePlatformError as exc:
+    except (platform_service.DuplicatePlatformError, ValueError) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     if platform is None:
