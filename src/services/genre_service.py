@@ -1,6 +1,5 @@
-﻿from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-
 from src.models.genre import Genre
 from src.schemas.genre import GenreCreate, GenreUpdate
 
@@ -69,7 +68,6 @@ def update_genre(db: Session, genre_id: int, genre_data: GenreUpdate):
     changes = genre_data.model_dump(exclude_unset=True)
     if "name" in changes:
         _ensure_unique_name(db, changes["name"], exclude_id=genre_id)
-
     for field, value in changes.items():
         setattr(genre, field, value)
 

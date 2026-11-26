@@ -1,7 +1,6 @@
-﻿from typing import Optional
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-
 
 class GenreCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
@@ -27,8 +26,6 @@ class GenreUpdate(BaseModel):
         if isinstance(value, str):
             return value.strip()
         return value
-
-
 class GenreResponse(BaseModel):
     id: int
     name: str

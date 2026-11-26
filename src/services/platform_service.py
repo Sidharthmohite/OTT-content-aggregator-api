@@ -1,9 +1,7 @@
-﻿from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-
 from src.models.platform import Platform
 from src.schemas.platform import PlatformCreate, PlatformUpdate
-
 
 class DuplicatePlatformError(Exception):
     pass

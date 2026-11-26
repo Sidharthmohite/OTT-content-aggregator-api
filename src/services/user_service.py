@@ -1,5 +1,5 @@
-"""User service module handling business logic, authentication, and duplicate handling (M2).
-"""
+
+"""User service module handling business logic, authentication, and duplicate handling (M2)."""
 
 from typing import Any, Optional
 from datetime import datetime, timezone
@@ -33,7 +33,7 @@ class UserNotFoundError(Exception):
     pass
 
 
-# Backward compatibility alias
+# Backward compatibility aliases
 UserAlreadyExistsError = DuplicateEmailError
 UsernameAlreadyExistsError = DuplicateUsernameError
 
@@ -41,170 +41,279 @@ UsernameAlreadyExistsError = DuplicateUsernameError
 class UserService:
     """Service providing user management, duplicate handling, and authentication."""
 
+    # --------------------------------------------------
+    # NORMALIZATION HELPERS
+    # --------------------------------------------------
+
+    @staticmethod
+    def _normalize_email(email: str) -> str:
+        """Normalize email by removing spaces and converting to lowercase."""
+        return email.strip().lower()
+
+    @staticmethod
+    def _normalize_username(username: str) -> str:
+        """Normalize username by removing surrounding spaces."""
+        return username.strip()
+
+    @staticmethod
+    def _get_integrity_error_field(exc: Exception) -> Optional[str]:
+        """Identify whether an integrity error relates to email or username."""
+        original_error = getattr(exc, "orig", None)
+        error_text = str(original_error or exc).lower()
+
+        # Check the database error message
+        if "email" in error_text:
+            return "email"
+
+        if "username" in error_text:
+            return "username"
+
+        # Check named constraints, if available
+        diagnostic = getattr(original_error, "diag", None)
+        constraint_name = getattr(diagnostic, "constraint_name", None)
+
+        if constraint_name:
+            constraint_name = constraint_name.lower()
+
+            if "email" in constraint_name:
+                return "email"
+
+            if "username" in constraint_name:
+                return "username"
+
+        return None
+
+    # --------------------------------------------------
+    # USER RETRIEVAL
+    # --------------------------------------------------
+
     @staticmethod
     def get_user_by_id(db: Any, user_id: int) -> Optional[User]:
-        """Retrieve a user by their unique primary key ID."""
+        """Retrieve a user by primary key."""
         if hasattr(db, "query"):
             return db.query(User).filter(User.id == user_id).first()
-        elif hasattr(db, "get"):  # in-memory store mock
+        elif hasattr(db, "get"):
             return db.get(user_id)
         return None
 
-    @staticmethod
-    def get_user_by_email(db: Any, email: str) -> Optional[User]:
-        """Retrieve a user by normalized lowercase email address."""
-        normalized_email = email.strip().lower()
+    @classmethod
+    def get_user_by_email(cls, db: Any, email: str) -> Optional[User]:
+        """Retrieve a user by normalized email."""
+        normalized_email = cls._normalize_email(email)
+
         if hasattr(db, "query"):
             return db.query(User).filter(User.email == normalized_email).first()
         elif hasattr(db, "find_by_email"):
             return db.find_by_email(normalized_email)
         return None
 
-    @staticmethod
-    def get_user_by_username(db: Any, username: str) -> Optional[User]:
-        """Retrieve a user by unique username."""
-        cleaned_username = username.strip()
+    @classmethod
+    def get_user_by_username(cls, db: Any, username: str) -> Optional[User]:
+        """Retrieve a user by normalized username."""
+        normalized_username = cls._normalize_username(username)
+
         if hasattr(db, "query"):
-            return db.query(User).filter(User.username == cleaned_username).first()
+            return db.query(User).filter(User.username == normalized_username).first()
         elif hasattr(db, "find_by_username"):
-            return db.find_by_username(cleaned_username)
+            return db.find_by_username(normalized_username)
         return None
+
+    # --------------------------------------------------
+    # CREATE USER
+    # --------------------------------------------------
 
     @classmethod
     def create_user(cls, db: Any, user_create: UserCreate) -> User:
-        """Create a new user with email and field validation, duplicate checks, and password hashing.
+        """Create a user with normalized fields, duplicate checks, and password hashing."""
 
-        Raises:
-            DuplicateEmailError: If the email is already registered.
-            DuplicateUsernameError: If the username is already taken.
-        """
-        # 1. Duplicate email check
-        existing_email = cls.get_user_by_email(db, user_create.email)
+        normalized_email = cls._normalize_email(user_create.email)
+        normalized_username = cls._normalize_username(user_create.username)
+
+        # Check duplicate email
+        existing_email = cls.get_user_by_email(db, normalized_email)
         if existing_email:
             raise DuplicateEmailError(
-                f"User with email '{user_create.email}' is already registered."
+                f"User with email '{normalized_email}' is already registered."
             )
 
-        # 2. Duplicate username check
-        existing_username = cls.get_user_by_username(db, user_create.username)
+        # Check duplicate username
+        existing_username = cls.get_user_by_username(db, normalized_username)
         if existing_username:
             raise DuplicateUsernameError(
-                f"Username '{user_create.username}' is already taken."
+                f"Username '{normalized_username}' is already taken."
             )
 
-        # 3. Hash user password securely
+        # Hash password
         hashed_password = get_password_hash(user_create.password)
 
-        # 4. Instantiate model
+        # Create user
         db_user = User(
-            email=user_create.email,
-            username=user_create.username,
+            email=normalized_email,
+            username=normalized_username,
             hashed_password=hashed_password,
             full_name=user_create.full_name,
-            is_active=user_create.is_active if user_create.is_active is not None else True,
+            is_active=(
+                user_create.is_active
+                if user_create.is_active is not None
+                else True
+            ),
         )
 
-        # 5. Commit with IntegrityError safety net
+        # Save user
         if hasattr(db, "add") and hasattr(db, "commit"):
             try:
                 db.add(db_user)
                 db.commit()
+
                 if hasattr(db, "refresh"):
                     db.refresh(db_user)
+
             except IntegrityError as exc:
                 db.rollback()
-                error_msg = str(exc).lower()
-                if "email" in error_msg:
+
+                error_field = cls._get_integrity_error_field(exc)
+
+                if error_field == "email":
                     raise DuplicateEmailError(
-                        f"User with email '{user_create.email}' is already registered."
+                        f"User with email '{normalized_email}' is already registered."
                     ) from exc
-                elif "username" in error_msg:
+
+                if error_field == "username":
                     raise DuplicateUsernameError(
-                        f"Username '{user_create.username}' is already taken."
+                        f"Username '{normalized_username}' is already taken."
                     ) from exc
-                else:
-                    raise DuplicateEmailError(
-                        "Registration failed due to duplicate database constraint."
-                    ) from exc
+
+                raise
+
         elif hasattr(db, "save"):
             db.save(db_user)
 
         return db_user
 
+    # --------------------------------------------------
+    # UPDATE USER
+    # --------------------------------------------------
+
     @classmethod
-    def update_user(cls, db: Any, user_id: int, user_update: UserUpdate) -> User:
-        """Update an existing user's profile with duplicate conflict checks.
+    def update_user(
+        cls,
+        db: Any,
+        user_id: int,
+        user_update: UserUpdate,
+    ) -> User:
+        """Update user details with normalization and duplicate checks."""
 
-        Raises:
-            UserNotFoundError: If the user does not exist.
-            DuplicateEmailError: If the new email is already taken by another user.
-            DuplicateUsernameError: If the new username is already taken by another user.
-        """
         user = cls.get_user_by_id(db, user_id)
+
         if not user:
-            raise UserNotFoundError(f"User with id {user_id} not found.")
+            raise UserNotFoundError(
+                f"User with id {user_id} not found."
+            )
 
-        # Email update duplicate verification
-        if user_update.email is not None and user_update.email != user.email:
-            existing = cls.get_user_by_email(db, user_update.email)
-            if existing and existing.id != user_id:
-                raise DuplicateEmailError(
-                    f"Email '{user_update.email}' is already registered to another account."
+        # Update email
+        if user_update.email is not None:
+            normalized_email = cls._normalize_email(user_update.email)
+            current_email = cls._normalize_email(user.email)
+
+            if normalized_email != current_email:
+                existing_email = cls.get_user_by_email(db, normalized_email)
+
+                if existing_email and existing_email.id != user_id:
+                    raise DuplicateEmailError(
+                        f"Email '{normalized_email}' is already registered "
+                        "to another account."
+                    )
+
+            user.email = normalized_email
+
+        # Update username
+        if user_update.username is not None:
+            normalized_username = cls._normalize_username(user_update.username)
+            current_username = cls._normalize_username(user.username)
+
+            if normalized_username != current_username:
+                existing_username = cls.get_user_by_username(
+                    db, normalized_username
                 )
-            user.email = user_update.email
 
-        # Username update duplicate verification
-        if user_update.username is not None and user_update.username != user.username:
-            existing = cls.get_user_by_username(db, user_update.username)
-            if existing and existing.id != user_id:
-                raise DuplicateUsernameError(
-                    f"Username '{user_update.username}' is already taken by another user."
-                )
-            user.username = user_update.username
+                if existing_username and existing_username.id != user_id:
+                    raise DuplicateUsernameError(
+                        f"Username '{normalized_username}' is already taken "
+                        "by another user."
+                    )
 
-        # Password update with re-hashing
+            user.username = normalized_username
+
+        # Update password
         if user_update.password is not None:
             user.hashed_password = get_password_hash(user_update.password)
 
+        # Update full name
         if user_update.full_name is not None:
             user.full_name = user_update.full_name
 
+        # Update active status
         if user_update.is_active is not None:
             user.is_active = user_update.is_active
 
+        # Update timestamp
         if hasattr(user, "updated_at"):
             user.updated_at = datetime.now(timezone.utc)
 
+        # Commit changes
         if hasattr(db, "commit"):
             try:
                 db.commit()
+
                 if hasattr(db, "refresh"):
                     db.refresh(user)
+
             except IntegrityError as exc:
                 db.rollback()
-                raise DuplicateEmailError("Failed to update user due to duplicate value.") from exc
+
+                error_field = cls._get_integrity_error_field(exc)
+
+                if error_field == "email":
+                    raise DuplicateEmailError(
+                        "Email is already registered to another account."
+                    ) from exc
+
+                if error_field == "username":
+                    raise DuplicateUsernameError(
+                        "Username is already taken by another user."
+                    ) from exc
+
+                raise
+
         elif hasattr(db, "save"):
             db.save(user)
 
         return user
 
+    # --------------------------------------------------
+    # AUTHENTICATION
+    # --------------------------------------------------
+
     @classmethod
     def authenticate_user(
-        cls, db: Any, username_or_email: str, password: str
+        cls,
+        db: Any,
+        username_or_email: str,
+        password: str,
     ) -> Optional[User]:
-        """Authenticate a user by email or username and verify password.
+        """Authenticate using email or username and verify password."""
 
-        Returns the User object if credentials are valid (the caller should
-        then check ``user.is_active`` and decide the HTTP status).
-        Returns None when the user does not exist or the password is wrong.
-        """
+        # Try email first
         user = cls.get_user_by_email(db, username_or_email)
+
+        # Try username if email lookup fails
         if not user:
             user = cls.get_user_by_username(db, username_or_email)
 
         if not user:
             return None
 
+        # Verify password
         if not verify_password(password, user.hashed_password):
             return None
 

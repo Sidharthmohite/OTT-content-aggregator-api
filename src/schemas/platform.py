@@ -1,7 +1,6 @@
-﻿from typing import Optional
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
-
 
 class PlatformCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=150)
@@ -29,8 +28,6 @@ class PlatformUpdate(BaseModel):
         if isinstance(value, str):
             return value.strip()
         return value
-
-
 class PlatformResponse(BaseModel):
     id: int
     name: str
