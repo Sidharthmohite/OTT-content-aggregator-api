@@ -1,421 +1,219 @@
-\# M3 Integration \& Database Verification Report
+# M3 Integration & Database Verification Report
 
+## Project
 
+**Project:** OTT Content Aggregator API  
+**Module:** M3 – Backend Developer & Integration Specialist  
+**Language:** Python 3.12  
+**Framework:** FastAPI  
+**ORM:** SQLAlchemy  
+**Database:** PostgreSQL (primary), SQLite (isolated testing)  
+**Migration Tool:** Alembic  
 
-\## Project
+---
 
-
-
-\*\*Project:\*\* OTT Content Aggregator API
-
-\*\*Module:\*\* M3 – Backend Developer \& Integration Specialist
-
-\*\*Language:\*\* Python 3.12
-
-\*\*Framework:\*\* FastAPI
-
-\*\*ORM:\*\* SQLAlchemy
-
-\*\*Database:\*\* PostgreSQL (primary), SQLite (isolated testing)
-
-\*\*Migration Tool:\*\* Alembic
-
-
-
-\---
-
-
-
-\## 1. Objective
-
-
+## 1. Objective
 
 The objective of M3 was to verify and strengthen database integration, SQLAlchemy model registration, relationships, API integration, transaction management, validation, exception handling, and regression stability across the OTT Content Aggregator API.
 
+---
 
+## 2. PostgreSQL Database Integration Testing
 
-\---
+- Verified PostgreSQL database connectivity.
+- Verified database tables and schema.
+- Tested insert, select, update, and delete operations.
+- Verified transaction rollback behavior.
+- Tested Genre API integration with PostgreSQL.
+- Created temporary test data and verified its deletion.
 
+**Status:** Verified through database checks and integration testing.
 
+---
 
-\## 2. Database Configuration
+## 3. Model Registration
 
+Application models and corresponding tables were verified:
 
+- `titles`
+- `genres`
+- `platforms`
+- `title_genres`
+- `title_platforms`
+- `users`
 
-\- Verified PostgreSQL database configuration and connectivity.
+The User model was integrated into the central model registry.
 
-\- Confirmed the configured SQLAlchemy engine uses PostgreSQL.
+**Status:** Completed.
 
-\- Verified database connectivity using the application's `test\_connection()` function.
+---
 
-\- Verified SQLAlchemy engine and session management.
+## 4. Relationships and Foreign Keys
 
-\- Tested database session cleanup after normal execution and exceptions.
+Verified the following relationships:
 
-\- Verified rollback behavior.
+- `title_genres.title_id` → `titles.id`
+- `title_genres.genre_id` → `genres.id`
+- `title_platforms.title_id` → `titles.id`
+- `title_platforms.platform_id` → `platforms.id`
 
-\- Added and tested SQLite foreign-key enforcement using a connection event listener.
+A total of four foreign-key relationships were verified in PostgreSQL.
 
-\- Verified foreign-key enforcement using `PRAGMA foreign\_keys`.
+SQLite foreign-key enforcement was also enabled and tested for isolated test databases.
 
-\- Tested database connection failure handling.
+**Status:** Verified.
 
+---
 
+## 5. Database Migrations and Alembic Verification
 
-\---
+- Inspected the Alembic migration history.
+- Verified the current migration revision.
+- Confirmed the current revision matches the migration head.
+- Executed `alembic upgrade head` without a reported migration error.
 
+**Current Migration Revision:** `1fdd48ea065c`  
+**Migration Status:** Head
 
+**Status:** Verified.
 
-\## 3. Model Registration
+---
 
+## 6. API Integration and Live Testing
 
+Verified integration of the Genre and Platform routers with the FastAPI application.
 
-All six application models and their corresponding database tables were integrated:
+Live Genre API operations were tested against PostgreSQL:
 
+| Operation | HTTP Status |
+|---|---:|
+| Create | 201 |
+| Read | 200 |
+| Update | 200 |
+| Delete | 200 |
 
+Temporary test records were created, verified, and deleted.
 
-\- `titles`
+**Status:** Live Genre API testing verified.
 
-\- `genres`
+---
 
-\- `platforms`
-
-\- `title\_genres`
-
-\- `title\_platforms`
-
-\- `users`
-
-
-
-The User model was integrated into the central model registry to ensure complete model registration.
-
-
-
-\---
-
-
-
-\## 4. Relationships and Foreign Keys
-
-
-
-Verified relationships between title, genre, and platform models.
-
-
-
-Foreign-key relationships include:
-
-
-
-\- `title\_genres.title\_id` → `titles.id`
-
-\- `title\_genres.genre\_id` → `genres.id`
-
-\- `title\_platforms.title\_id` → `titles.id`
-
-\- `title\_platforms.platform\_id` → `platforms.id`
-
-
-
-SQLite foreign-key enforcement was enabled and verified for isolated testing to prevent invalid relational records.
-
-
-
-\---
-
-
-
-\## 5. Database Migrations
-
-
-
-Alembic migration history was inspected and verified.
-
-
-
-\*\*Current Migration Revision:\*\* `1fdd48ea065c`
-
-\*\*Migration Status:\*\* Head
-
-
-
-Three migration revisions were identified in the migration chain:
-
-
-
-1\. Initial catalog and authentication tables
-
-2\. Unique title identity constraint
-
-3\. SQLite timestamp defaults correction
-
-
-
-The PostgreSQL database was confirmed to be at the latest available migration revision. The `alembic upgrade head` command was executed without reporting a migration error.
-
-
-
-The migration history and database revision were verified.
-
-
-
-\---
-
-
-
-\## 6. API Integration
-
-
-
-Verified integration of the API routers with the FastAPI application.
-
-
-
-Integrated routers:
-
-
-
-\- Titles router
-
-\- Authentication router
-
-\- Genres router
-
-\- Platforms router
-
-
-
-Verified application components include:
-
-
-
-\- Root endpoint
-
-\- Health endpoint
-
-\- API router integration
-
-\- Database dependency injection
-
-\- OpenAPI configuration
-
-\- Authentication dependencies
-
-\- Application startup configuration
-
-
-
-Existing API functionality was preserved.
-
-
-
-\---
-
-
-
-\## 7. Validation and Exception Handling
-
-
-
-Verified API validation and error-handling behavior for:
-
-
-
-\- Missing required fields
-
-\- Invalid input values
-
-\- Invalid data combinations
-
-\- Invalid identifiers
-
-\- Non-existent records
-
-\- Duplicate records
-
-\- Database integrity violations
-
-\- Unexpected internal exceptions
-
-
-
-A global exception handler was integrated to return a standardized internal server error response.
-
-
-
-Unexpected exceptions return HTTP 500 with a generic response:
-
-
-
-`{"detail": "Internal server error"}`
-
-
-
-Internal exception details are not exposed to API clients through this response.
-
-
-
-\---
-
-
-
-\## 8. Transaction Management
-
-
-
-Verified transaction rollback behavior using a test database.
-
-
-
-Confirmed that records inserted during a rolled-back transaction are not persisted.
-
-
-
-Database session lifecycle and cleanup behavior were tested, including:
-
-
-
-\- Normal session cleanup
-
-\- Session cleanup after exceptions
-
-\- Transaction rollback
-
-\- Database connection failure handling
-
-
-
-\---
-
-
-
-\## 9. Testing and Regression Results
-
-
-
-The complete test suite was executed following the final integration and testing changes.
-
-
-
-\*\*Final Test Result: 326 Passed, 0 Failed\*\*
-
-
-
-\*\*Total Statements:\*\* 858
-
-\*\*Missed Statements:\*\* 0
-
-\*\*Overall Coverage:\*\* 100%
-
-
+## 7. Validation and Exception Handling
 
 Testing included:
 
+- Missing required fields
+- Invalid input values
+- Invalid identifiers
+- Non-existent records
+- Duplicate records
+- Database integrity violations
+- Unexpected internal exceptions
 
+The global exception handler was verified to return a standardized internal error response.
 
-\- Database tests
+Unexpected exceptions return HTTP 500 with a generic response:
 
-\- Authentication tests
+`{"detail": "Internal server error"}`
 
-\- User service tests
+Internal exception details are not exposed to API clients through this response.
 
-\- Titles CRUD tests
+**Status:** Tested.
 
-\- Genres API tests
+---
 
-\- Platforms API tests
+## 8. Transaction Management
 
-\- API validation tests
+Verified database transaction behavior:
 
-\- Health endpoint tests
+- Insert and select operations
+- Update and delete operations
+- Transaction rollback
+- Session cleanup
+- Database connection failure handling
 
-\- Exception handling tests
+Records inserted during a rolled-back transaction were not persisted.
 
-\- Database transaction tests
+**Status:** Verified.
 
-\- Model and relationship tests
+---
 
-\- Regression testing
+## 9. SQLite vs PostgreSQL Test Comparison
 
+- The automated regression suite was executed using SQLite.
+- PostgreSQL integration was tested separately through database operations and live API testing.
+- Database behavior, CRUD operations, migration state, and relationships were verified in PostgreSQL.
 
+**Limitation:** The complete automated regression suite was not executed against PostgreSQL.
 
-All 326 tests passed successfully.
+**Status:** Comparison and separate integration verification completed.
 
+---
 
+## 10. Test Count Discrepancy (326 vs 390)
 
-\---
+The earlier M3 integration report recorded:
 
+**326 passed, 0 failed**
 
+A later recorded regression test run reported:
 
-\## 10. Known Warning and Limitations
+**390 passed**
 
+The difference is 64 tests.
 
+The earlier count of 326 could not be traced to a separate test configuration or excluded test set during the subsequent investigation.
 
-One Starlette deprecation warning was observed concerning the use of `httpx` with `starlette.testclient`.
+The 390-test result is the later recorded regression result. The reason for the difference between 326 and 390 remains unresolved.
 
+**Status:** Discrepancy documented; root cause not yet established.
 
+---
 
-The warning did not affect test execution or test results.
+## 11. Final Regression Testing
 
+The recorded full regression test result:
 
+**390 passed**
 
-The database-down API scenario has not been independently verified end-to-end against a live API request with PostgreSQL unavailable. Database connection failure handling and the global exception handler have been tested separately.
+The automated suite primarily uses SQLite for isolated testing.
 
+PostgreSQL database integration and live Genre API testing were performed separately.
 
+A fresh final regression run is recommended before final sign-off.
 
-\---
+**Status:** Previously passed; fresh rerun pending confirmation.
 
+---
 
+## 12. Known Warnings and Limitations
 
-\## 11. Final Outcome
+- A Starlette deprecation warning was observed in the earlier test run.
+- The complete 390-test automated suite has not been run against PostgreSQL.
+- The difference between the earlier 326-test report and later 390-test result remains unexplained.
+- A fresh final regression run is pending confirmation.
 
+---
 
+## 13. Final Summary
 
-M3 database and backend integration verification was completed successfully.
+| Task | Status |
+|---|---|
+| PostgreSQL database integration | Verified |
+| Alembic revision mismatch verification | Verified |
+| SQLite vs PostgreSQL comparison | Documented |
+| 326 vs 390 test discrepancy | Documented; unresolved |
+| Live API testing | Verified |
+| Database relationships and foreign keys | Verified |
+| Regression testing | 390 passed in recorded run; rerun pending |
+| Final integration report | Updated |
 
+---
 
+## Conclusion
 
-\- PostgreSQL database connection verified
+M3 database and backend integration verification included PostgreSQL connectivity, database CRUD operations, migration verification, live Genre API testing, foreign-key verification, transaction testing, and regression testing.
 
-\- Application database connectivity function verified
+The later recorded automated regression run reported 390 passing tests using SQLite. PostgreSQL integration was verified separately. The test-count discrepancy between 326 and 390 remains under investigation.
 
-\- SQLAlchemy session management verified
-
-\- Session cleanup tested
-
-\- Transaction rollback tested
-
-\- Models registered successfully
-
-\- User model integrated
-
-\- Relationships verified
-
-\- Foreign-key enforcement tested
-
-\- Alembic migration history verified
-
-\- Database migration revision verified at head
-
-\- Database tables verified
-
-\- API routers integrated
-
-\- Validation and exception handling tested
-
-\- Regression suite passed
-
-\- Full source-code test coverage achieved
-
-
-
-\*\*Final Status: M3 Integration and Regression Verification Completed Successfully\*\*
-
-
-
-\*\*Test Summary: 326 Passed, 0 Failed, 1 Warning\*\*
-
-
-
-\*\*Coverage Summary: 858 Statements, 100% Coverage\*\*
+**Overall Status:** Integration verification completed; final regression confirmation and test-count discrepancy clarification remain pending.
