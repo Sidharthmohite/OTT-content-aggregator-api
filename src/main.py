@@ -5,6 +5,8 @@ from src.api.auth import router as auth_router
 from src.api.genres import router as genres_router
 from src.api.platforms import router as platforms_router
 from src.api.titles import router as titles_router
+from src.api.movies import router as movies_router
+from src.api.web_series import router as web_series_router
 
 app = FastAPI(
     title="OTT Content Aggregator API",
@@ -25,6 +27,8 @@ app.include_router(titles_router)
 app.include_router(auth_router)
 app.include_router(genres_router)
 app.include_router(platforms_router)
+app.include_router(movies_router)
+app.include_router(web_series_router)
 
 
 @app.get("/")
