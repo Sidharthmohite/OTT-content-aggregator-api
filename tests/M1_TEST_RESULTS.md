@@ -6,91 +6,94 @@ OTT Content Aggregator API
 ## Assigned Member
 M1 - Siddharth Mohite
 
-## 1. Movie API Tests
+## 1. Movie and Web Series API Integration Tests
 
-| Test Case | Expected Status | Actual Status | Result |
-|---|---:|---:|---|
-| Create Movie | 201 | 201 | PASS |
-| Get All Movies | 200 | 200 | PASS |
-| Get Movie By ID | 200 | 200 | PASS |
-| Update Movie | 200 | 200 | PASS |
-| Delete Movie | 200 | 200 | PASS |
-| Get Deleted Movie | 404 | 404 | PASS |
-| Invalid Movie ID | 404 | 404 | PASS |
-| Empty Movie Title | 422 | 422 | PASS |
-| Missing Required Fields | 422 | 422 | PASS |
-| Invalid Release Year | 422 | 422 | PASS |
-| Invalid Duration | 422 | 422 | PASS |
-| Duplicate Movie Create | 409 | 409 | PASS |
-| Duplicate Movie Update | 409 | 409 | PASS |
+| Test Case | Movie | Web Series |
+|---|---|---|
+| GET All Records | PASS | PASS |
+| GET Record By ID | PASS | PASS |
+| POST / Create | PASS | PASS |
+| PATCH / Update | PASS | PASS |
+| Duplicate POST Validation | PASS | PASS |
+| Invalid Input Validation | PASS | PASS |
 
-## 2. Web Series API Tests
-
-| Test Case | Expected Status | Actual Status | Result |
-|---|---:|---:|---|
-| Create Web Series | 201 | 201 | PASS |
-| Get All Web Series | 200 | 200 | PASS |
-| Get Web Series By ID | 200 | 200 | PASS |
-| Update Web Series | 200 | 200 | PASS |
-| Delete Web Series | 200 | 200 | PASS |
-| Get Deleted Web Series | 404 | 404 | PASS |
-| Invalid Web Series ID | 404 | 404 | PASS |
-| Empty Web Series Title | 422 | 422 | PASS |
-| Missing Required Fields | 422 | 422 | PASS |
-| Invalid Release Year | 422 | 422 | PASS |
-| Invalid Number Of Seasons | 422 | 422 | PASS |
-| Duplicate Web Series Create | 409 | 409 | PASS |
-| Duplicate Web Series Update | 409 | 409 | PASS |
-
-## 3. Database Verification
+## 2. Live PostgreSQL Database Verification
 
 | Verification | Result |
 |---|---|
+| PostgreSQL connection | PASS |
 | Movies table exists | PASS |
 | Web Series table exists | PASS |
 | Movie records persisted | PASS |
 | Web Series records persisted | PASS |
+| Movie columns match model | PASS |
+| Web Series columns match model | PASS |
 
-Latest observed database row counts:
-- Movies: 3
-- Web Series: 3
+Latest observed database records:
 
-## 4. Duplicate Validation Rule
+- Movies: 4 records
+- Web Series: 4 records
 
-A record is treated as duplicate when title, release year, and language match.
-Title and language comparisons are case-insensitive.
-Duplicate create and update requests return HTTP 409 Conflict.
+Original records were preserved. Integration test records are:
+- Movie ID 5: M1 Integration Test Movie
+- Web Series ID 5: M1 Integration Test Series
 
-## 5. Notes
+Test records have not been deleted.
 
-- TestClient emitted a Starlette deprecation warning related to httpx.
-- The warning did not prevent the tested API requests from passing.
-- Database currently contains test records. They have not been cleaned up.
+## 3. Request Validation
 
-## 6. Overall Status
+| Validation | Result |
+|---|---|
+| Duplicate Movie POST | PASS - rejected |
+| Duplicate Web Series POST | PASS - rejected |
+| Movie duration = 0 | PASS - rejected |
+| Web Series seasons = 0 | PASS - rejected |
 
-Movie CRUD: PASS
-Web Series CRUD: PASS
-Request Validation: PASS
-Negative Testing: PASS
-Duplicate Testing: PASS
-Database Persistence: PASS
+Duplicate requests returned the expected error responses:
+- Movie: Movie already exists
+- Web Series: Web Series already exists
 
-M1 documentation is prepared based on the tests executed so far.
+Invalid values were rejected with HTTP 422 validation errors.
 
-## 7. Automated Test Results
+## 4. Automated Test Results
 
-Command:
-`python -m unittest discover -s tests -p "test_*.py" -v`
+Command executed:
 
-| Test Module | Tests Passed | Failed | Result |
+`python -m pytest tests/test_movie_api.py tests/test_web_series_api.py -q`
+
+| Test Modules | Passed | Failed | Result |
 |---|---:|---:|---|
-| Movie API (M1) | 13 | 0 | PASS |
-| Web Series API (M1) | 13 | 0 | PASS |
-| User Service (M2/Auth) | 11 | 0 | PASS |
-| **Full Test Suite** | **37** | **0** | **PASS** |
+| Movie API and Web Series API | 26 | 0 | PASS |
+| **Total** | **26** | **0** | **PASS** |
 
-Total execution time: 7.375 seconds.
+Execution time: 2.25 seconds.
 
-All 37 automated tests passed successfully.
-The Starlette/httpx deprecation warning did not affect test execution.
+## 5. Warnings
+
+Two warnings were reported during automated testing:
+
+- Starlette deprecation warning related to httpx/TestClient.
+- SECRET_KEY is set to a default or weak value. A strong random key of at least 32 characters is required before production deployment.
+
+Both warnings did not prevent the tests from passing.
+
+## 6. GitHub Status
+
+- M1 Movie and Web Series module PR #25: Merged.
+- Router registration added in src/main.py.
+- Commit: c7ae699
+- Commit message: fix: register movie and web series routers
+- Changes pushed successfully to main branch.
+
+## 7. Overall M1 Status
+
+- Movie module implementation: PASS
+- Web Series module implementation: PASS
+- Router registration: PASS
+- Live PostgreSQL API integration: PASS
+- Automated API tests: 26/26 PASS
+- Duplicate validation: PASS
+- Invalid input validation: PASS
+- Documentation update: COMPLETED
+
+Note: Live DELETE API testing was not performed during the latest integration session. Existing database records and integration test records have been preserved.
