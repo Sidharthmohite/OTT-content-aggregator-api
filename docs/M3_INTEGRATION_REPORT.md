@@ -2,13 +2,13 @@
 
 ## Project
 
-**Project:** OTT Content Aggregator API  
-**Module:** M3 – Backend Developer & Integration Specialist  
-**Language:** Python 3.12  
-**Framework:** FastAPI  
-**ORM:** SQLAlchemy  
-**Database:** PostgreSQL (primary), SQLite (isolated testing)  
-**Migration Tool:** Alembic  
+**Project:** OTT Content Aggregator API
+**Module:** M3 – Backend Developer & Integration Specialist
+**Language:** Python 3.12
+**Framework:** FastAPI
+**ORM:** SQLAlchemy
+**Database:** PostgreSQL (primary), SQLite (isolated testing)
+**Migration Tool:** Alembic
 
 ---
 
@@ -16,24 +16,22 @@
 
 The objective of M3 was to verify and strengthen database integration, SQLAlchemy model registration, relationships, API integration, transaction management, validation, exception handling, and regression stability across the OTT Content Aggregator API.
 
----
+## 2. PostgreSQL Database Integration
 
-## 2. PostgreSQL Database Integration Testing
+The following PostgreSQL integration activities were performed:
 
 - Verified PostgreSQL database connectivity.
-- Verified database tables and schema.
-- Tested insert, select, update, and delete operations.
+- Inspected database tables and schema.
+- Verified database CRUD operations.
 - Verified transaction rollback behavior.
-- Tested Genre API integration with PostgreSQL.
-- Created temporary test data and verified its deletion.
+- Tested Genre API integration against PostgreSQL.
+- Created temporary test records, verified them, and deleted them.
 
-**Status:** Verified through database checks and integration testing.
-
----
+**Status:** Verified.
 
 ## 3. Model Registration
 
-Application models and corresponding tables were verified:
+Verified the application models and corresponding database tables:
 
 - `titles`
 - `genres`
@@ -42,178 +40,211 @@ Application models and corresponding tables were verified:
 - `title_platforms`
 - `users`
 
-The User model was integrated into the central model registry.
+The User model is integrated into the central model registry.
+
+The PostgreSQL database also contains the `alembic_version` table for migration tracking.
 
 **Status:** Completed.
 
----
-
 ## 4. Relationships and Foreign Keys
 
-Verified the following relationships:
+Verified the following foreign-key relationships:
 
 - `title_genres.title_id` → `titles.id`
 - `title_genres.genre_id` → `genres.id`
 - `title_platforms.title_id` → `titles.id`
 - `title_platforms.platform_id` → `platforms.id`
 
-A total of four foreign-key relationships were verified in PostgreSQL.
+Four foreign-key constraints were verified in PostgreSQL.
 
 SQLite foreign-key enforcement was also enabled and tested for isolated test databases.
 
 **Status:** Verified.
 
----
-
 ## 5. Database Migrations and Alembic Verification
 
-- Inspected the Alembic migration history.
-- Verified the current migration revision.
-- Confirmed the current revision matches the migration head.
-- Executed `alembic upgrade head` without a reported migration error.
+The following migration activities were performed:
 
-**Current Migration Revision:** `1fdd48ea065c`  
-**Migration Status:** Head
+- Inspected Alembic migration history.
+- Verified the current local migration revision.
+- Confirmed that the local database revision matches the local migration head.
+- Previously executed `alembic upgrade head` without a reported migration error.
 
-**Status:** Verified.
+**Local Database Revision:** `1fdd48ea065c`
+**Local Migration Head:** `1fdd48ea065c`
 
----
+The revision reported by the TL (`6fa7b2be47d6`) was not located in the migration files on the branches checked.
 
-## 6. API Integration and Live Testing
+The discrepancy between the TL-reported revision and the local migration history remains pending clarification.
 
-Verified integration of the Genre and Platform routers with the FastAPI application.
+No migration changes were made as part of this verification.
 
-Live Genre API operations were tested against PostgreSQL:
+**Status:** Local migration verification completed; revision discrepancy unresolved.
+
+## 6. Genre API Integration and Live Testing
+
+Genre API operations were tested through Swagger against PostgreSQL.
 
 | Operation | HTTP Status |
 |---|---:|
-| Create | 201 |
-| Read | 200 |
-| Update | 200 |
-| Delete | 200 |
+| Create Genre | 201 |
+| Get All Genres | 200 |
+| Get Genre by ID | 200 |
+| Update Genre | 200 |
+| Delete Genre | 200 |
+| Invalid Genre ID | 404 |
 
-Temporary test records were created, verified, and deleted.
+Invalid Genre ID response:
 
-**Status:** Live Genre API testing verified.
+```json
+{
+  "detail": "Genre not found"
+}
+```
 
----
+Temporary records were created, verified, and deleted during testing.
+
+**Status:** Live Genre API verification completed.
 
 ## 7. Validation and Exception Handling
 
-Testing included:
+Automated testing covered:
 
-- Missing required fields
-- Invalid input values
-- Invalid identifiers
-- Non-existent records
-- Duplicate records
-- Database integrity violations
-- Unexpected internal exceptions
+- Missing required fields.
+- Invalid input values.
+- Invalid identifiers.
+- Non-existent records.
+- Duplicate records.
+- Database integrity violations.
+- Unexpected internal exceptions.
 
 The global exception handler was verified to return a standardized internal error response.
 
-Unexpected exceptions return HTTP 500 with a generic response:
+Unexpected exceptions return HTTP 500 with:
 
-`{"detail": "Internal server error"}`
+```json
+{
+  "detail": "Internal server error"
+}
+```
 
-Internal exception details are not exposed to API clients through this response.
+Internal exception details are not exposed through the response.
 
-**Status:** Tested.
+**Status:** Verified through automated testing.
 
----
+## 8. Database Session Cleanup and Transaction Rollback
 
-## 8. Transaction Management
+Database tests covered:
 
-Verified database transaction behavior:
+- Session creation.
+- Session closure.
+- Session cleanup during tested execution paths.
+- Transaction rollback.
+- Database integrity after rollback.
 
-- Insert and select operations
-- Update and delete operations
-- Transaction rollback
-- Session cleanup
-- Database connection failure handling
+Records inserted during rolled-back transactions were not persisted.
 
-Records inserted during a rolled-back transaction were not persisted.
+**Test Result:** 8 passed.
 
-**Status:** Verified.
+**Status:** Verified through database tests.
 
----
+## 9. SQLite and PostgreSQL Verification
 
-## 9. SQLite vs PostgreSQL Test Comparison
+Database verification was performed using two separate configurations.
 
-- The automated regression suite was executed using SQLite.
-- PostgreSQL integration was tested separately through database operations and live API testing.
-- Database behavior, CRUD operations, migration state, and relationships were verified in PostgreSQL.
+**SQLite:**
+- Used for isolated automated regression testing.
+- Used to verify database-related test cases.
+- SQLite foreign-key enforcement was enabled and tested.
 
-**Limitation:** The complete automated regression suite was not executed against PostgreSQL.
+**PostgreSQL:**
+- Verified database connectivity.
+- Checked database tables and schema.
+- Tested CRUD operations and transaction rollback.
+- Verified foreign-key constraints.
+- Tested Genre API operations through Swagger.
 
-**Status:** Comparison and separate integration verification completed.
+**Limitation:** The complete automated regression suite was not executed against PostgreSQL. PostgreSQL integration was verified separately.
 
----
+**Status:** Separate automated and PostgreSQL integration verification completed.
 
 ## 10. Test Count Discrepancy (326 vs 390)
 
-The earlier M3 integration report recorded:
+During historical test-count investigation, the following results were verified:
 
-**326 passed, 0 failed**
+- Historical commit `bad7e96`: 326 tests collected.
+- Current project: 390 tests passed in the full regression run.
 
-A later recorded regression test run reported:
+The historical collection count and the latest passing test count represent different code revisions and different test operations. Therefore, they should not be directly treated as equivalent results.
 
-**390 passed**
+The exact reason for the difference has not been conclusively established.
 
-The difference is 64 tests.
+**Latest verified full-suite result:** 390 passed.
 
-The earlier count of 326 could not be traced to a separate test configuration or excluded test set during the subsequent investigation.
-
-The 390-test result is the later recorded regression result. The reason for the difference between 326 and 390 remains unresolved.
-
-**Status:** Discrepancy documented; root cause not yet established.
-
----
+**Status:** Current full-suite result verified; historical test-count discrepancy documented.
 
 ## 11. Final Regression Testing
 
-The recorded full regression test result:
+The full project regression suite was executed using:
 
-**390 passed**
+```powershell
+python -m pytest tests --import-mode=importlib
+```
 
-The automated suite primarily uses SQLite for isolated testing.
+**Result: 390 passed**
 
-PostgreSQL database integration and live Genre API testing were performed separately.
+The `importlib` mode was required because duplicate test modules in the extracted M2 folder caused collection/import conflicts with the default pytest mode.
 
-A fresh final regression run is recommended before final sign-off.
+Additional focused test results:
 
-**Status:** Previously passed; fresh rerun pending confirmation.
+| Test Suite | Result |
+|---|---:|
+| Database tests | 8 passed |
+| Genre service tests | 9 passed |
+| Genre & Platform CRUD regression | 35 passed |
+| Full regression suite | 390 passed |
 
----
+The focused test results are included within the overall test suite and should not be added to the full-suite count.
+
+The latest full regression run also reported one Starlette deprecation warning.
+
+**Status:** Full regression suite passed.
 
 ## 12. Known Warnings and Limitations
 
-- A Starlette deprecation warning was observed in the earlier test run.
-- The complete 390-test automated suite has not been run against PostgreSQL.
-- The difference between the earlier 326-test report and later 390-test result remains unexplained.
-- A fresh final regression run is pending confirmation.
+- A Starlette deprecation warning was observed in the test environment.
+- The complete automated regression suite was executed using SQLite, not PostgreSQL.
+- The historical difference between 326 collected tests and 390 passing tests remains unexplained.
+- The migration revision reported by the TL differs from the local revision and remains pending clarification.
 
----
+These limitations have been documented to distinguish completed verification from outstanding clarification.
 
 ## 13. Final Summary
 
 | Task | Status |
 |---|---|
 | PostgreSQL database integration | Verified |
-| Alembic revision mismatch verification | Verified |
-| SQLite vs PostgreSQL comparison | Documented |
-| 326 vs 390 test discrepancy | Documented; unresolved |
-| Live API testing | Verified |
-| Database relationships and foreign keys | Verified |
-| Regression testing | 390 passed in recorded run; rerun pending |
-| Final integration report | Updated |
-
----
+| Database CRUD operations | Verified |
+| Model registration | Verified |
+| Relationships and foreign keys | Verified |
+| Session cleanup and rollback | 8 tests passed |
+| Genre service tests | 9 tests passed |
+| Genre & Platform CRUD regression | 35 tests passed |
+| Live Genre API testing | Verified |
+| Invalid Genre ID handling | 404 verified |
+| Local Alembic migration verification | Verified |
+| Migration revision discrepancy | Unresolved |
+| Historical test count discrepancy | Documented; unresolved |
+| Full regression testing | 390 passed |
 
 ## Conclusion
 
-M3 database and backend integration verification included PostgreSQL connectivity, database CRUD operations, migration verification, live Genre API testing, foreign-key verification, transaction testing, and regression testing.
+M3 integration verification covered PostgreSQL connectivity, database CRUD operations, SQLAlchemy model registration, relationships, foreign-key constraints, session cleanup, transaction rollback, Genre API integration, exception handling, and regression testing.
 
-The later recorded automated regression run reported 390 passing tests using SQLite. PostgreSQL integration was verified separately. The test-count discrepancy between 326 and 390 remains under investigation.
+The latest full automated regression run reported **390 passing tests** using SQLite with the `importlib` import mode. PostgreSQL database integration and live Genre API verification were performed separately.
 
-**Overall Status:** Integration verification completed; final regression confirmation and test-count discrepancy clarification remain pending.
+The local database revision matches the local Alembic migration head. However, the revision reported by the TL remains pending clarification.
+
+The historical test-count difference between 326 collected tests and 390 passing tests has also been documented without assuming an unverified explanation.
+
+**Overall Status:** M3 integration verification and regression testing completed successfully. Migration revision clarification and historical test-count reconciliation remain outstanding.
