@@ -1,10 +1,6 @@
 # API Endpoint Documentation
 
-The latest verification is recorded in [WEEK1_FINAL_VERIFICATION.md](WEEK1_FINAL_VERIFICATION.md). Its current results supersede older counts and pending-status statements below.
-
-Implemented routes are registered in the main FastAPI application.
-
-This document includes the title-validation changes on branch `fix/week1-test-cleanup`.
+See the [Week 1 verification](WEEK1_FINAL_VERIFICATION.md) and [Week 2 verification](WEEK2_GENRES_PLATFORMS.md) for test evidence.
 
 ## App basics
 
@@ -230,14 +226,21 @@ PATCH `/auth/me` updates supported profile fields for the authenticated account.
 
 ## Genres and OTT Platforms, owner M5
 
-| Method | Proposed endpoint | Status | Purpose |
-| --- | --- | --- | --- |
-| GET | `/genres` | Planned | List genres |
-| POST | `/genres` | Planned | Create a genre |
-| GET | `/platforms` | Planned | List OTT platforms |
-| POST | `/platforms` | Planned | Create an OTT platform |
+Both collections use trailing slashes. Item paths use an integer ID.
 
-Genre and platform models and association tables exist. Their API modules are placeholders, and their routers are pending registration.
+| Method | Genre endpoint | Platform endpoint | Success | Errors |
+| --- | --- | --- | --- | --- |
+| GET | `/genres/` | `/platforms/` | 200 | |
+| POST | `/genres/` | `/platforms/` | 201 | 409, 422 |
+| GET | `/genres/{genre_id}` | `/platforms/{platform_id}` | 200 | 404, 422 |
+| PATCH | `/genres/{genre_id}` | `/platforms/{platform_id}` | 200 | 404, 409, 422 |
+| DELETE | `/genres/{genre_id}` | `/platforms/{platform_id}` | 200 | 404, 422 |
+
+On creation, supply a nonblank `name`. Names are trimmed and case-sensitive, with a maximum of 100 characters for genres and 150 for platforms. Both accept an optional `description`. Platforms also accept an optional HTTP or HTTPS `website_url` up to 500 characters.
+
+PATCH preserves omitted fields. Explicit null clears `description` or `website_url`. A null or blank name returns 422. A duplicate name returns 409 and preserves the stored record. Missing integer IDs return 404 and malformed IDs return 422.
+
+DELETE returns a success message and removes the record and its title links while preserving the titles. These routes currently allow unauthenticated requests. See the [Week 2 verification](WEEK2_GENRES_PLATFORMS.md) for SQLite and PostgreSQL evidence.
 
 ## Background synchronization
 
@@ -249,11 +252,7 @@ The final synchronization endpoint and implementation remain to be agreed.
 
 ## Testing and evidence
 
-The latest local automated run on `fix/week1-test-cleanup` reported 176 passed tests and one Starlette TestClient deprecation warning.
-
-PostgreSQL migration `9e811ea57f63` was applied successfully. Alembic reported no differences between the database schema and the models.
-
-The existing 11 Swagger screenshots predate the cleanup changes. Live PostgreSQL API verification of the new duplicate and combined-record PATCH behavior remains pending.
+See the [Week 1 verification](WEEK1_FINAL_VERIFICATION.md) for title and authentication evidence and the [Week 2 verification](WEEK2_GENRES_PLATFORMS.md) for Genre and Platform evidence.
 
 - [Testing report](WEEK1_TEST_REPORT.md)
 - [Bug report](WEEK1_BUG_REPORT.md)
@@ -261,4 +260,4 @@ The existing 11 Swagger screenshots predate the cleanup changes. Live PostgreSQL
 
 ## OpenAPI follow-up
 
-The error codes above describe expected API behavior. Verify that each route's generated OpenAPI definition also declares its applicable error responses, especially HTTP 404 and 409.
+Genre and Platform item routes declare applicable 404 and 409 responses. The Week 2 CRUD suite checks these declarations.

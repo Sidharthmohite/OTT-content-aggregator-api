@@ -1,5 +1,7 @@
 # Project Status Report (M6)
 
+This is a historical 13 November snapshot. See the [Week 2 verification](WEEK2_GENRES_PLATFORMS.md) and [M3 integration report](M3_INTEGRATION_REPORT.md) for later changes.
+
 Based on the code in the repository on 13 Nov 2026 (`main` at commit `38412f4` plus M2's folder). Everything below was read from the real files.
 
 ## 1. Summary against the four-week roadmap
