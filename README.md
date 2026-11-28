@@ -125,9 +125,13 @@ python -m pip install pytest httpx
 python -m pytest tests --import-mode=importlib
 ```
 
+Install the runtime requirements in the same Python environment that runs pytest. If collection reports `No module named jwt`, install `requirements.txt` with that interpreter. `PyJWT` provides the `jwt` import.
+
 The `importlib` mode is used to avoid test-module import conflicts caused by duplicate test files in the extracted M2 folder.
 
-### Latest recorded results
+The Week 2 verification rerun on `eacb21f` passed **416 tests** on SQLite, including **68** focused checks for genres, platforms, and relationships. See the [Week 2 verification report](docs/WEEK2_GENRES_PLATFORMS.md) for commands and separate PostgreSQL evidence.
+
+### Recorded M3 results
 
 | Test Suite | Result |
 |---|---:|
@@ -138,10 +142,11 @@ The `importlib` mode is used to avoid test-module import conflicts caused by dup
 
 The full automated regression suite uses SQLite for isolated testing. PostgreSQL integration and live Genre API verification were performed separately.
 
-Historical commit bad7e96 had 326 tests collected. The current project has 390 passing tests. These results are from different revisions and different test operations; the exact reason for the difference has not been established.
+Historical commit bad7e96 had 326 tests collected. The M3 report records 390 passing tests. These results are from different revisions and different test operations; the exact reason for the difference has not been established.
 
 ## Verification Documentation
 
+- [Week 2 Genre and Platform verification](docs/WEEK2_GENRES_PLATFORMS.md)
 - [API Endpoints](docs/API_ENDPOINTS.md)
 - [M3 Integration & Database Verification Report](docs/M3_INTEGRATION_REPORT.md)
 - [Week 1 Testing Report](docs/WEEK1_TEST_REPORT.md)

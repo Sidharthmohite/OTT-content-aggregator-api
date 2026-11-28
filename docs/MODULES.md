@@ -1,12 +1,10 @@
 # Module Descriptions
 
-The latest verification is recorded in [WEEK1_FINAL_VERIFICATION.md](WEEK1_FINAL_VERIFICATION.md). Its current results supersede older counts and pending-status statements below.
-
-Updated on 19 November 2026 for branch `fix/week1-test-cleanup`.
+See the [Week 2 verification](WEEK2_GENRES_PLATFORMS.md) for Genre and Platform evidence.
 
 | Module | Current implementation |
 | --- | --- |
-| `src/main.py` | Creates the FastAPI app, registers title and authentication routers, and exposes home and health routes |
+| `src/main.py` | Creates the FastAPI app, registers title, movie, web-series, authentication, genre, and platform routers, and exposes home and health routes |
 | `src/core/config.py` | Loads database and JWT settings. Warns when the default JWT secret is used |
 | `src/core/database.py` | Provides the SQLAlchemy engine, declarative base, and per-request database sessions |
 | `src/core/security.py` | Handles password hashing, password verification, JWT creation, and JWT decoding |
@@ -19,7 +17,9 @@ Updated on 19 November 2026 for branch `fix/week1-test-cleanup`.
 | `src/schemas/title.py` | Validates title length, language, release year, positive numeric values, and movie/web-series field combinations |
 | `src/services/catalog_service.py` | Implements title CRUD, validates combined PATCH data before saving, and rolls back duplicate-write transactions |
 | `src/models/genre.py`, `src/models/platform.py`, `src/models/associations.py` | Define genre/platform models and many-to-many relationships with titles |
-| `src/api/genres.py`, `src/api/platforms.py` | Placeholders for dedicated genre and platform endpoints |
+| `src/api/genres.py`, `src/api/platforms.py` | Provide list, create, retrieve, update, and delete endpoints for genres and platforms |
+| `src/schemas/genre.py`, `src/schemas/platform.py` | Validate request fields and define response models |
+| `src/services/genre_service.py`, `src/services/platform_service.py` | Implement CRUD, duplicate-name handling, and association cleanup |
 | `alembic/` | Contains migration configuration and PostgreSQL schema revisions |
 | `tests/` | Contains health, authentication, validation, protected-profile, and title API tests |
 | `M2_extracted_files/` | Historical standalone M2 project with its own test suite |
@@ -52,25 +52,10 @@ Rejected duplicate updates preserve the existing record. The service rolls back 
 | --- | --- |
 | `bdfe0e261206` | Creates the initial catalog, authentication, and association tables |
 | `9e811ea57f63` | Adds the four-column title identity constraint |
+| `1fdd48ea065c` | Updates SQLite timestamp defaults |
 
-Local PostgreSQL is at `9e811ea57f63 (head)`. Alembic reported no new upgrade operations.
+See the [M3 integration report](M3_INTEGRATION_REPORT.md) for the current migration head, database checks, and outstanding revision clarification.
 
 ## Testing
 
-The latest full automated run reported 176 passed tests, zero expected failures, zero unexpected passes, and one Starlette TestClient deprecation warning.
-
-The title API suite contains 34 passing cases, including combined-record PATCH validation, duplicate rejection, record preservation, and recovery after a rejected duplicate update.
-
-Endpoint tests use in-memory SQLite. PostgreSQL migration verification was performed separately. Live PostgreSQL API checks for the new cleanup behavior remain pending.
-
-## Remaining work
-
-- Persist a unique local JWT secret outside Git.
-- Verify duplicate handling and combined-record PATCH behavior against PostgreSQL through the running API.
-- Review the Starlette TestClient deprecation warning.
-- Verify generated OpenAPI error-response declarations.
-- Commit, push, and submit the cleanup branch for review.
-
-Genre/platform endpoints, search/filtering, caching, and background synchronization remain roadmap work.
-
-See the [API reference](API_ENDPOINTS.md), [testing report](WEEK1_TEST_REPORT.md), and [bug report](WEEK1_BUG_REPORT.md).
+The [Week 1 verification](WEEK1_FINAL_VERIFICATION.md) records the title and authentication baseline. The [Week 2 verification](WEEK2_GENRES_PLATFORMS.md) records Genre and Platform API, validation, and relationship tests alongside separate live PostgreSQL checks.
